@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="競馬予想2">
+<meta name="theme-color" content="#0a0f0a">
+<title>🏇 競馬予想アプリ2</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+
+:root{
+  --bg:#0a0f0a;
+  --panel:#0f1a0f;
+  --border:#1e3a1e;
+  --text:#dde8dd;
+  --muted:#4a7a4a;
+  --gold:#f5c842;
+  --red:#e05050;
+  --blue:#5aaaee;
+  --green:#4adf80;
+}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans JP',sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ===== HEADER ===== */
+#app-header{
+  flex-shrink:0;
+  padding:14px 16px 10px;
+  padding-top:max(14px, env(safe-area-inset-top));
+  text-align:center;
+  border-bottom:1px solid var(--border);
+}
+#app-title{
+  font-size:1.0rem;
+  font-weight:900;
+  color:var(--gold);
+  letter-spacing:.1em;
+  text-shadow:0 0 14px rgba(245,200,66,.3);
+}
+#app-subtitle{
+  font-size:.65rem;
+  color:var(--muted);
+  margin-top:3px;
+  letter-spacing:.08em;
+}
+
+/* ===== SCREENS ===== */
+.screen{display:none;flex:1;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.screen.active{display:flex;}
+
+/* ===== HOME SCREEN ===== */
+#screen-home{padding:14px 12px 30px;padding-bottom:max(30px,env(safe-area-inset-bottom));}
+
+.venue-group{margin-bottom:16px;}
+.venue-group-title{
+  font-size:.7rem;
+  font-weight:700;
+  color:var(--muted);
+  letter-spacing:.12em;
+  margin-bottom:8px;
+  padding-left:4px;
+}
+.race-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+}
+.race-btn{
+  background:#111c11;
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:.78rem;
+  font-weight:700;
+  padding:12px 4px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .15s;
+  position:relative;
+}
+.race-btn:active{transform:scale(.96);background:#1a2e1a;}
+.race-btn.loaded{border-color:var(--gold);color:var(--gold);}
+.race-btn.loading{opacity:.5;}
+.race-btn .r-num{display:block;font-size:.9rem;}
+.race-btn .r-label{display:block;font-size:.6rem;color:var(--muted);margin-top:2px;}
+
+.race-btn.day-row{
+  grid-column: span 2;
+  background:#1e0c0c;
+  border-color:#4a2020;
+  color:#f08080;
+}
+
+#home-status{
+  text-align:center;
+  font-size:.7rem;
+  color:var(--muted);
+  margin-top:14px;
+  min-height:1.2em;
+}
+
+#btn-refresh-list{
+  display:block;
+  margin:14px auto 0;
+  padding:8px 22px;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:#111c11;
+  color:var(--muted);
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:.75rem;
+  font-weight:700;
+  cursor:pointer;
+}
+
+/* ===== RESULT SCREEN ===== */
+#screen-result{padding:0;}
+
+#result-header{
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  border-bottom:1px solid var(--border);
+  background:#0c140c;
+}
+.icon-btn{
+  background:#141f14;
+  border:1px solid var(--border);
+  border-radius:6px;
+  color:var(--text);
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:.72rem;
+  font-weight:700;
+  padding:7px 12px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.icon-btn.home{color:var(--gold);border-color:var(--gold);}
+.icon-btn.clear{color:#f08080;border-color:#4a2020;}
+
+#result-title{
+  flex:1;
+  text-align:center;
+  font-size:.8rem;
+  font-weight:900;
+  color:var(--gold);
+}
+#result-meta{
+  font-size:.62rem;
+  color:var(--muted);
+  text-align:center;
+  padding:4px 0 8px;
+}
+
+#result-body{
+  flex:1;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  padding:10px 10px 30px;
+  padding-bottom:max(30px,env(safe-area-inset-bottom));
+}
+
+.section-title{
+  font-size:.7rem;
+  font-weight:700;
+  color:var(--muted);
+  letter-spacing:.12em;
+  margin:14px 0 8px;
+  padding-left:2px;
+}
+.section-title:first-child{margin-top:0;}
+
+/* レース展開バナー */
+#pace-banner{
+  padding:10px 14px;
+  border-radius:8px;
+  font-size:.75rem;
+  line-height:1.7;
+  margin-bottom:4px;
+}
+
+/* 予想ボタン */
+#btn-predict{
+  width:100%;
+  padding:14px;
+  border-radius:8px;
+  border:none;
+  background:linear-gradient(135deg,#f5c842,#e8a800);
+  color:#1a1200;
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:1rem;
+  font-weight:900;
+  letter-spacing:.1em;
+  cursor:pointer;
+  box-shadow:0 4px 16px rgba(245,200,66,.3);
+  margin-bottom:4px;
+}
+#btn-predict:active{transform:scale(.98);}
+#btn-predict:disabled{opacity:.4;}
+
+/* TOP5カード */
+.top5-wrap{
+  display:grid;
+  grid-template-columns:repeat(5, 1fr);
+  gap:5px;
+}
+.top-card{
+  min-width:0;
+  background:#0c1a0c;border-radius:10px;border:1px solid var(--border);
+  padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  overflow:hidden;
+}
+.card-mark{font-size:1.4rem;line-height:1;font-weight:900;}
+.mark-honmei{color:#ff5a5a;} .mark-taikou{color:#5aaaee;} .mark-tan{color:#4adf80;}
+.mark-renpuku{color:#9ab09a;} .mark-hoshi{color:#f5c842;}
+.card-honmei{border-color:#c03030;background:#180c0c;}
+.card-taikou{border-color:#2a6aaa;background:#0c1020;}
+.card-tan{border-color:#1a7a40;background:#0c180c;}
+.card-renpuku{border-color:#3a5a3a;background:#101810;}
+.card-hoshi{border-color:#8a6a00;background:#181400;}
+.card-num{font-size:1.3rem;font-weight:900;line-height:1;}
+.card-name{font-size:.58rem;font-weight:700;color:var(--text);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.card-score{font-size:.56rem;color:var(--muted);margin-top:1px;}
+.card-score span{font-weight:700;font-size:.72rem;color:var(--text);}
+.score-bar-wrap{width:100%;height:4px;background:#1a2a1a;border-radius:2px;margin-top:2px;overflow:hidden;}
+.score-bar{height:100%;border-radius:2px;}
+.bar-honmei{background:#ff5a5a;} .bar-taikou{background:#5aaaee;} .bar-tan{background:#4adf80;}
+.bar-renpuku{background:#9ab09a;} .bar-hoshi{background:#f5c842;}
+.card-ev{font-size:.6rem;margin-top:2px;font-weight:700;padding:1px 5px;border-radius:3px;}
+.ev-atsu{background:#1a3a1a;color:#4adf80;}
+.ev-kiken{background:#3a1a1a;color:#f07a7a;}
+.ev-normal{color:var(--muted);}
+
+/* EV分析セクション */
+.ev-list{display:flex;flex-direction:column;gap:6px;}
+.ev-item{
+  display:flex;align-items:center;gap:8px;
+  background:#0f1a0f;border:1px solid var(--border);border-radius:8px;
+  padding:8px 10px;font-size:.75rem;
+}
+.ev-item.atsu{border-color:#2a6a2a;background:#0c1a0c;}
+.ev-item.kiken{border-color:#6a2a2a;background:#1a0c0c;}
+.ev-tag{
+  font-size:.62rem;font-weight:900;padding:2px 6px;border-radius:4px;white-space:nowrap;
+}
+.ev-tag.atsu{background:#1a4a1a;color:#4adf80;}
+.ev-tag.kiken{background:#4a1a1a;color:#f07a7a;}
+.ev-detail{flex:1;}
+.ev-detail .ev-name{font-weight:700;}
+.ev-detail .ev-sub{font-size:.65rem;color:var(--muted);margin-top:2px;}
+
+/* テーブル */
+.table-wrap{overflow-x:auto;scrollbar-width:thin;}
+table{width:100%;border-collapse:collapse;font-size:.7rem;white-space:nowrap;}
+th{background:#0c160c;color:var(--muted);font-weight:700;padding:6px 7px;text-align:center;border-bottom:1px solid var(--border);position:sticky;top:0;}
+td{padding:5px 6px;text-align:center;border-bottom:1px solid rgba(30,58,30,.5);}
+tr:hover td{background:rgba(30,60,30,.3);}
+.td-mark{font-size:1rem;font-weight:900;}
+.td-name{text-align:left;font-weight:700;max-width:85px;overflow:hidden;text-overflow:ellipsis;}
+.td-score{font-weight:900;}
+.score-hi{color:var(--gold);}
+.style-badge{padding:1px 5px;border-radius:3px;font-size:.65rem;font-weight:700;}
+.style-saki{background:#1a2a4a;color:#5aaaee;}
+.style-sashi{background:#1a3a1a;color:#4adf80;}
+.style-oikomi{background:#2a1a3a;color:#c07af0;}
+.style-nige{background:#3a1a1a;color:#f07a7a;}
+.pct-hi{color:#4adf80;font-weight:700;}
+.pct-mid{color:var(--gold);}
+.pct-lo{color:#5a7a5a;}
+
+/* loading / error */
+#loading-overlay{
+  position:fixed;inset:0;background:rgba(10,15,10,.85);
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:999;
+}
+#loading-overlay.show{display:flex;}
+.spinner{
+  width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--gold);
+  border-radius:50%;animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loading-text{font-size:.8rem;color:var(--muted);}
+
+.error-box{
+  margin:12px;padding:12px 14px;border:1px solid #6a2a2a;background:#1a0c0c;
+  border-radius:8px;font-size:.78rem;color:#f08080;line-height:1.7;
+}
+</style>
+</head>
+<body>
+
+<div id="app-header">
+  <div id="app-title">🏇 競馬予想アプリ2</div>
+  <div id="app-subtitle">REAL DATA ANALYZER</div>
+</div>
+
+<!-- ===== HOME SCREEN ===== -->
+<div class="screen active" id="screen-home">
+  <div id="venue-groups"></div>
+  <button id="btn-refresh-list">🔄 レース一覧を再読込</button>
+  <div style="text-align:center;margin-top:8px;">
+    <a href="javascript:void(0)" onclick="resetGasUrl()" style="font-size:.65rem;color:var(--muted);text-decoration:underline;">⚙ GAS URL設定を変更</a>
+  </div>
+  <div id="home-status"></div>
+</div>
+
+<!-- ===== RESULT SCREEN ===== -->
+<div class="screen" id="screen-result">
+  <div id="result-header">
+    <button class="icon-btn home" id="btn-home">🏠 ホーム</button>
+    <div id="result-title">—</div>
+    <button class="icon-btn clear" id="btn-clear-result">🗑 クリア</button>
+  </div>
+  <div id="result-meta"></div>
+  <div id="result-body"></div>
+</div>
+
+<!-- ===== LOADING OVERLAY ===== -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div id="loading-text">読み込み中...</div>
+</div>
+
+<script>
+// ============================================================
+//  CONFIG
+// ============================================================
+const CONFIG = {
+  // GAS デプロイ後のWebアプリURL（初回起動時に設定画面で入力 → ブラウザに保存される）
+  GAS_URL: localStorage.getItem('keiba2_gas_url') || '',
+};
+
+// ============================================================
+//  HOME SCREEN — レース一覧構築
+// ============================================================
+// 競馬場グルーピング定義（画像①のレイアウトに準拠）
+const VENUE_GROUPS = [
+  { key: '関東', label: '🏇 関東', races: [1,2,3,4,5,6,7,8,9,10,11,12] },
+  { key: '関西', label: '🏇 関西', races: [1,2,3,4,5,6,7,8,9,10,11,12] },
+  { key: 'ローカル', label: '🏇 ローカル', races: [1,2,3,4,5,6,7,8,9,10,11,12] },
+];
+const DAY_RACES = ['関東11R(日)', '関西11R(日)'];
+
+let availableSheets = []; // GASから取得したシート名一覧
+let raceCache = {}; // sheetName -> raceData
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  document.getElementById('btn-refresh-list').addEventListener('click', loadSheetList);
+  document.getElementById('btn-home').addEventListener('click', showHome);
+  document.getElementById('btn-clear-result').addEventListener('click', clearResult);
+
+  if (!CONFIG.GAS_URL) {
+    showSetupScreen();
+  } else {
+    loadSheetList();
+  }
+});
+
+// ============================================================
+//  初回設定画面（GAS URL入力）
+// ============================================================
+function showSetupScreen() {
+  const wrap = document.getElementById('venue-groups');
+  wrap.innerHTML = `
+    <div style="padding:20px 10px;">
+      <div style="font-size:.85rem;font-weight:900;color:var(--gold);margin-bottom:10px;">⚙ 初回設定</div>
+      <div style="font-size:.75rem;color:var(--muted);line-height:1.8;margin-bottom:14px;">
+        Google Apps Script の「ウェブアプリURL」を入力してください。<br>
+        （.../exec で終わるURLです）<br>
+        一度入力すればこの端末に保存され、次回から不要です。
+      </div>
+      <input type="text" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec"
+        style="width:100%;background:#0a140a;border:1px solid var(--border);border-radius:6px;
+        color:var(--text);font-size:.78rem;padding:10px;outline:none;margin-bottom:10px;">
+      <button id="btn-save-gas-url" style="width:100%;padding:12px;border-radius:6px;border:none;
+        background:linear-gradient(135deg,#f5c842,#e8a800);color:#1a1200;font-weight:900;
+        font-size:.85rem;cursor:pointer;">保存して読み込む</button>
+      <div id="setup-error" style="color:#f08080;font-size:.7rem;margin-top:8px;"></div>
+    </div>
+  `;
+  document.getElementById('btn-save-gas-url').addEventListener('click', () => {
+    const url = document.getElementById('gas-url-input').value.trim();
+    if (!url.startsWith('https://script.google.com/')) {
+      document.getElementById('setup-error').textContent = '⚠ 正しいGAS URLを入力してください';
+      return;
+    }
+    localStorage.setItem('keiba2_gas_url', url);
+    CONFIG.GAS_URL = url;
+    loadSheetList();
+  });
+}
+
+// ============================================================
+//  設定リセット（ホーム画面に設定変更ボタンを追加）
+// ============================================================
+function resetGasUrl() {
+  if (confirm('GAS URLの設定をリセットしますか？')) {
+    localStorage.removeItem('keiba2_gas_url');
+    location.reload();
+  }
+}
+
+// ============================================================
+//  シート一覧取得
+// ============================================================
+async function loadSheetList() {
+  setHomeStatus('読み込み中...');
+  try {
+    const res = await fetch(`${CONFIG.GAS_URL}?action=list`);
+    const data = await res.json();
+    if (data.error) {
+      setHomeStatus('⚠ ' + data.error);
+      return;
+    }
+    availableSheets = data.sheets || [];
+    buildHomeButtons();
+    setHomeStatus(`✓ ${availableSheets.length}件のレースを認識`);
+  } catch (err) {
+    setHomeStatus('⚠ 接続エラー：GAS URLの設定を確認してください');
+    console.error(err);
+    buildHomeButtons();
+  }
+}
+
+function setHomeStatus(msg) {
+  document.getElementById('home-status').textContent = msg;
+}
+
+// ============================================================
+//  正規化関数（JS側）— シート名の表記揺れ対応
+// ============================================================
+function normalize(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .trim()
+    .replace(/[\uFF10-\uFF19]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/\s+/g, '');
+}
+
+function findMatchingSheet(label) {
+  const target = normalize(label);
+  return availableSheets.find(s => normalize(s) === target);
+}
+
+// ============================================================
+//  ホーム画面ボタン構築
+// ============================================================
+function buildHomeButtons() {
+  const wrap = document.getElementById('venue-groups');
+  wrap.innerHTML = '';
+
+  VENUE_GROUPS.forEach(group => {
+    const div = document.createElement('div');
+    div.className = 'venue-group';
+
+    const title = document.createElement('div');
+    title.className = 'venue-group-title';
+    title.textContent = group.label;
+    div.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'race-grid';
+
+    group.races.forEach(r => {
+      const label = `${group.key}${r}R`;
+      const btn = createRaceButton(label, `${r}R`);
+      grid.appendChild(btn);
+    });
+
+    div.appendChild(grid);
+    wrap.appendChild(div);
+  });
+
+  // 日替わり重賞（関東11R(日) / 関西11R(日)）
+  const dayDiv = document.createElement('div');
+  dayDiv.className = 'venue-group';
+  const dayTitle = document.createElement('div');
+  dayTitle.className = 'venue-group-title';
+  dayTitle.textContent = '🏆 重賞（日替わり）';
+  dayDiv.appendChild(dayTitle);
+
+  const dayGrid = document.createElement('div');
+  dayGrid.className = 'race-grid';
+  DAY_RACES.forEach(label => {
+    const btn = createRaceButton(label, label, true);
+    dayGrid.appendChild(btn);
+  });
+  dayDiv.appendChild(dayGrid);
+  wrap.appendChild(dayDiv);
+}
+
+function createRaceButton(sheetLabel, displayLabel, isDayRace = false) {
+  const btn = document.createElement('button');
+  btn.className = 'race-btn' + (isDayRace ? ' day-row' : '');
+
+  const matched = findMatchingSheet(sheetLabel);
+  if (matched) btn.classList.add('loaded');
+
+  btn.innerHTML = `<span class="r-num">${displayLabel}</span><span class="r-label">${matched ? '✓データあり' : '—'}</span>`;
+
+  btn.addEventListener('click', () => {
+    if (!matched) {
+      alert(`「${sheetLabel}」に対応するシートが見つかりません。\nスプレッドシートのシート名を確認してください。`);
+      return;
+    }
+    openRace(matched, displayLabel.replace('R','') + 'R');
+  });
+
+  return btn;
+}
+
+// ============================================================
+//  レース画面を開く
+// ============================================================
+async function openRace(sheetName, displayLabel) {
+  showLoading('レースデータ取得中...');
+  showResultScreen();
+  document.getElementById('result-title').textContent = displayLabel;
+  document.getElementById('result-meta').textContent = '';
+  document.getElementById('result-body').innerHTML = '';
+
+  try {
+    let raceData;
+    if (raceCache[sheetName]) {
+      raceData = raceCache[sheetName];
+    } else {
+      const res = await fetch(`${CONFIG.GAS_URL}?action=race&sheet=${encodeURIComponent(sheetName)}`);
+      raceData = await res.json();
+      if (raceData.error) throw new Error(raceData.error);
+      raceCache[sheetName] = raceData;
+    }
+    renderRaceScreen(raceData, displayLabel);
+  } catch (err) {
+    document.getElementById('result-body').innerHTML =
+      `<div class="error-box">⚠ データ取得エラー<br>${String(err.message || err)}</div>`;
+  } finally {
+    hideLoading();
+  }
+}
+
+// ============================================================
+//  画面切り替え
+// ============================================================
+function showHome() {
+  document.getElementById('screen-home').classList.add('active');
+  document.getElementById('screen-result').classList.remove('active');
+}
+function showResultScreen() {
+  document.getElementById('screen-home').classList.remove('active');
+  document.getElementById('screen-result').classList.add('active');
+}
+function clearResult() {
+  document.getElementById('result-body').innerHTML = '';
+  document.getElementById('result-title').textContent = '—';
+  document.getElementById('result-meta').textContent = '';
+}
+function showLoading(text) {
+  document.getElementById('loading-text').textContent = text;
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('show');
+}
+
+// ============================================================
+//  展開分析
+// ============================================================
+function analyzeRace(horses) {
+  const counts = { '逃げ':0, '先行':0, '差し':0, '追込':0 };
+  horses.forEach(h => { if (counts[h.style] !== undefined) counts[h.style]++; });
+
+  const front = counts['逃げ'] + counts['先行'];
+  const total = horses.length;
+  let pace, styleBonus;
+
+  if (front >= total * 0.45) {
+    pace = 'ハイペース';
+    styleBonus = { '逃げ':-0.10, '先行':-0.05, '差し':+0.08, '追込':+0.12 };
+  } else if (front <= total * 0.20) {
+    pace = 'スローペース';
+    styleBonus = { '逃げ':+0.12, '先行':+0.08, '差し':-0.05, '追込':-0.10 };
+  } else {
+    pace = '平均ペース';
+    styleBonus = { '逃げ':+0.02, '先行':+0.03, '差し':+0.02, '追込':-0.02 };
+  }
+  return { counts, front, pace, styleBonus };
+}
+
+// ============================================================
+//  スコアリング（オッズは使わない）
+// ============================================================
+function scoreHorses(horses, weights) {
+  function normalize01(arr) {
+    const valid = arr.filter(v => v !== null && !isNaN(v));
+    if (valid.length === 0) return arr.map(() => 50);
+    const mn = Math.min(...valid), mx = Math.max(...valid);
+    if (mx === mn) return arr.map(() => 50);
+    return arr.map(v => (v === null || isNaN(v)) ? 50 : ((v - mn) / (mx - mn)) * 100);
+  }
+  function normalizeInv(arr) {
+    return normalize01(arr).map(v => 100 - v);
+  }
+
+  const race = analyzeRace(horses);
+
+  // 上がり3F：脚質補正（差し・追込は重視、先行はやや、逃げは低め）
+  const f3Normed = normalizeInv(horses.map(h => h.avg3f));
+  const agariNormed = horses.map((h, i) => {
+    const base = f3Normed[i];
+    const mult = (h.style === '差し' || h.style === '追込') ? 1.0
+               : (h.style === '先行') ? 0.6 : 0.4;
+    return base * mult;
+  });
+
+  // 安定力：連対率＋平均着順(逆)を合成
+  const rensoNormed = normalize01(horses.map(h => h.renso));
+  const avgRankNormed = normalizeInv(horses.map(h => h.avgRank));
+  const anteiNormed = horses.map((h,i) => (rensoNormed[i] * 0.5 + avgRankNormed[i] * 0.5));
+
+  // その他の単純正規化項目
+  const kishuNormed     = normalize01(horses.map(h => h.kishi));
+  const kyoriNormed     = normalize01(horses.map(h => h.kyori));
+  const mawariNormed    = normalize01(horses.map(h => h.mawari));
+  const kettoNormed     = normalize01(horses.map(h => h.sireWin));
+  const chokyoshiNormed = normalize01(horses.map(h => h.chokyoshi));
+
+  // 脚質重み（差し/先行/逃げ/追込）：condition_master の該当列をそのまま使う
+  const STYLE_WEIGHT_KEY = { '差し':'sashi', '先行':'senko', '逃げ':'nige', '追込':'oikomi' };
+
+  const LABELS = {
+    agari:'上がり力', kyakushitsu:'脚質適性', kishu:'騎手力', kyori:'距離適性',
+    mawari:'回り適性', antei:'安定感', ketto:'血統', chokyoshi:'調教師'
+  };
+
+  // 各馬ごとにスコアを計算
+  const rawScores = horses.map((h, i) => {
+    let score = 0;
+    const contribs = {};
+
+    // 通常8項目（脚質以外）
+    const normedMap = {
+      agari: agariNormed[i],
+      kishu: kishuNormed[i],
+      kyori: kyoriNormed[i],
+      mawari: mawariNormed[i],
+      antei: anteiNormed[i],
+      ketto: kettoNormed[i],
+      chokyoshi: chokyoshiNormed[i],
+    };
+    Object.entries(normedMap).forEach(([k, n]) => {
+      const w = weights[k] || 0;
+      const contrib = (n / 100) * w;
+      contribs[k] = { norm: n, contrib, weight: w };
+      score += contrib;
+    });
+
+    // 脚質：その馬の脚質に対応する重みを使用（差し重み/先行重み/逃げ重み/追込重み）
+    const styleKey = STYLE_WEIGHT_KEY[h.style];
+    const styleWeight = styleKey ? (weights[styleKey] || 0) : 0;
+    // 展開ボーナスを正規化スコアに反映（50を基準に±bonus*250）
+    const paceBonus = race.styleBonus[h.style] || 0;
+    const styleNorm = Math.max(0, Math.min(100, 50 + paceBonus * 250));
+    const styleContrib = (styleNorm / 100) * styleWeight;
+    contribs['kyakushitsu'] = { norm: styleNorm, contrib: styleContrib, weight: styleWeight };
+    score += styleContrib;
+
+    return { score, contribs };
+  });
+
+  const maxRaw = Math.max(...rawScores.map(r => r.score));
+
+  const scored = horses.map((h, i) => {
+    const { score: raw, contribs } = rawScores[i];
+    const finalScore = maxRaw > 0 ? Math.round((raw / maxRaw) * 100) : 50;
+
+    const reasons = Object.entries(contribs)
+      .sort((a,b) => b[1].contrib - a[1].contrib)
+      .slice(0, 4)
+      .filter(([,v]) => v.norm >= 55)
+      .map(([k,v]) => ({ key:k, label: LABELS[k], norm: v.norm }));
+
+    return { ...h, score: finalScore, contribs, reasons };
+  });
+
+  return { horses: scored, race, maxRaw };
+}
+
+// ============================================================
+//  期待値分析（オッズ vs スコア）
+// ============================================================
+function analyzeEV(scored) {
+  // スコア順位とオッズ順位を比較
+  const byScore = [...scored].sort((a,b) => b.score - a.score);
+  const byOdds  = [...scored].filter(h => h.odds !== null).sort((a,b) => a.odds - b.odds);
+
+  const scoreRank = {};
+  byScore.forEach((h,i) => scoreRank[h.num] = i+1);
+  const oddsRank = {};
+  byOdds.forEach((h,i) => oddsRank[h.num] = i+1);
+
+  return scored.map(h => {
+    const sRank = scoreRank[h.num];
+    const oRank = oddsRank[h.num] || null;
+    let evType = null; // 'atsu' | 'kiken' | null
+    let evDiff = 0;
+
+    if (oRank !== null) {
+      evDiff = oRank - sRank; // 正：オッズ評価より実力が高い＝穴
+      // 激アツ：実力スコア上位なのにオッズ人気が低い（穴馬）
+      if (sRank <= 5 && oRank - sRank >= 3) {
+        evType = 'atsu';
+      }
+      // 危険：人気上位だが実力スコアが低い
+      if (oRank <= 5 && sRank - oRank >= 4) {
+        evType = 'kiken';
+      }
+    }
+    return { ...h, scoreRank: sRank, oddsRank: oRank, evType, evDiff };
+  });
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+const MARKS = [
+  { mark:'◎', cls:'honmei', label:'◎ 本命' },
+  { mark:'○', cls:'taikou', label:'○ 対抗' },
+  { mark:'▲', cls:'tan',    label:'▲ 単穴' },
+  { mark:'△', cls:'renpuku',label:'△ 連複' },
+  { mark:'☆', cls:'hoshi',  label:'☆ 注目' },
+];
+const STYLE_CLS = { '逃げ':'nige','先行':'saki','差し':'sashi','追込':'oikomi' };
+
+function pctClass(v) {
+  if (v === null) return '';
+  if (v >= 60) return 'pct-hi';
+  if (v >= 35) return 'pct-mid';
+  return 'pct-lo';
+}
+function fmtPct(v) { return v === null ? '—' : v.toFixed(1) + '%'; }
+
+function renderRaceScreen(raceData, displayLabel) {
+  const { raceInfo, horses, weights } = raceData;
+
+  document.getElementById('result-meta').textContent =
+    `${raceInfo.venue || '?'} ${raceInfo.surface || ''}${raceInfo.distance || '?'}m ${raceInfo.turn || ''}回り（${raceInfo.distCat || '?'}）　出走 ${horses.length}頭`;
+
+  const body = document.getElementById('result-body');
+  body.innerHTML = '';
+
+  // 予想ボタン
+  const predictBtn = document.createElement('button');
+  predictBtn.id = 'btn-predict';
+  predictBtn.textContent = '▶ 予想スコアを計算';
+  body.appendChild(predictBtn);
+
+  const resultArea = document.createElement('div');
+  resultArea.id = 'prediction-result';
+  body.appendChild(resultArea);
+
+  predictBtn.addEventListener('click', () => {
+    predictBtn.disabled = true;
+    predictBtn.textContent = '計算中...';
+    setTimeout(() => {
+      const { horses: scored, race } = scoreHorses(horses, weights);
+      const withEV = analyzeEV(scored);
+      renderPrediction(resultArea, withEV, race, weights);
+      predictBtn.textContent = '🔄 再計算';
+      predictBtn.disabled = false;
+    }, 50);
+  });
+}
+
+function renderPrediction(container, scored, race, weights) {
+  container.innerHTML = '';
+
+  // ===== 展開分析バナー =====
+  const paceColor = race.pace === 'ハイペース' ? '#e05050' : race.pace === 'スローペース' ? '#5aaaee' : '#f5c842';
+  const paceBg    = race.pace === 'ハイペース' ? '#1e0c0c' : race.pace === 'スローペース' ? '#0c1020' : '#141a0c';
+  const styleList = Object.entries(race.counts).map(([s,n])=>`${s}:${n}頭`).join(' / ');
+  const bonusDesc = Object.entries(race.styleBonus)
+    .map(([s,b]) => `<span style="color:${b>0?'#4adf80':'#e05050'}">${s}${b>0?'↑':'↓'}</span>`)
+    .join(' ');
+
+  const paceEl = document.createElement('div');
+  paceEl.id = 'pace-banner';
+  paceEl.style.background = paceBg;
+  paceEl.style.border = `1px solid ${paceColor}44`;
+  paceEl.innerHTML = `<span style="color:${paceColor};font-weight:900;font-size:.9rem">📊 ${race.pace}</span>　` +
+    `<span style="color:#7ab07a">${styleList}</span><br>展開有利度：${bonusDesc}`;
+  container.appendChild(paceEl);
+
+  // ===== 上位5頭カード =====
+  const sorted = [...scored].sort((a,b) => b.score - a.score);
+  const maxScore = sorted[0].score || 1;
+
+  const top5Title = document.createElement('div');
+  top5Title.className = 'section-title';
+  top5Title.textContent = '予　想';
+  container.appendChild(top5Title);
+
+  const top5Wrap = document.createElement('div');
+  top5Wrap.className = 'top5-wrap';
+  sorted.slice(0,5).forEach((h,i) => {
+    const m = MARKS[i];
+    const pct = Math.round((h.score / maxScore) * 100);
+    const card = document.createElement('div');
+    card.className = `top-card card-${m.cls}`;
+
+    let evHtml = '';
+    if (h.evType === 'atsu') evHtml = '<div class="card-ev ev-atsu">🔥激アツ穴</div>';
+    else if (h.evType === 'kiken') evHtml = '<div class="card-ev ev-kiken">⚠危険人気</div>';
+    else if (h.odds !== null) evHtml = `<div class="card-ev ev-normal">${h.odds}倍</div>`;
+
+    card.innerHTML = `
+      <div class="card-mark mark-${m.cls}">${m.mark}</div>
+      <div class="card-num">${h.num}</div>
+      <div class="card-name">${h.name}</div>
+      <div class="card-score">スコア <span>${h.score}</span></div>
+      <div class="score-bar-wrap"><div class="score-bar bar-${m.cls}" style="width:${pct}%"></div></div>
+      <div style="font-size:.58rem;color:var(--muted);margin-top:1px">${h.jockey}</div>
+      ${evHtml}
+    `;
+    top5Wrap.appendChild(card);
+  });
+  container.appendChild(top5Wrap);
+
+  // ===== 期待値分析（激アツ・危険） =====
+  const atsuHorses   = scored.filter(h => h.evType === 'atsu').sort((a,b)=>b.evDiff - a.evDiff);
+  const kikenHorses  = scored.filter(h => h.evType === 'kiken').sort((a,b)=>a.evDiff - b.evDiff);
+
+  if (atsuHorses.length > 0 || kikenHorses.length > 0) {
+    const evTitle = document.createElement('div');
+    evTitle.className = 'section-title';
+    evTitle.textContent = '💡 期待値分析（スコア vs オッズ）';
+    container.appendChild(evTitle);
+
+    const evList = document.createElement('div');
+    evList.className = 'ev-list';
+
+    atsuHorses.forEach(h => {
+      const item = document.createElement('div');
+      item.className = 'ev-item atsu';
+      item.innerHTML = `
+        <span class="ev-tag atsu">🔥激アツ</span>
+        <div class="ev-detail">
+          <div class="ev-name">${h.num}番 ${h.name}</div>
+          <div class="ev-sub">スコア${h.scoreRank}位（${h.score}点）なのにオッズ${h.oddsRank}人気（${h.odds}倍）— 過小評価の可能性</div>
+        </div>
+      `;
+      evList.appendChild(item);
+    });
+
+    kikenHorses.forEach(h => {
+      const item = document.createElement('div');
+      item.className = 'ev-item kiken';
+      item.innerHTML = `
+        <span class="ev-tag kiken">⚠危険</span>
+        <div class="ev-detail">
+          <div class="ev-name">${h.num}番 ${h.name}</div>
+          <div class="ev-sub">オッズ${h.oddsRank}人気（${h.odds}倍）だがスコア${h.scoreRank}位（${h.score}点）— 過大評価の可能性</div>
+        </div>
+      `;
+      evList.appendChild(item);
+    });
+
+    container.appendChild(evList);
+  }
+
+  // ===== 全馬テーブル =====
+  const tableTitle = document.createElement('div');
+  tableTitle.className = 'section-title';
+  tableTitle.textContent = '全馬スコア一覧';
+  container.appendChild(tableTitle);
+
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'table-wrap';
+
+  const table = document.createElement('table');
+  table.innerHTML = `
+    <thead><tr>
+      <th>順</th><th>印</th><th>馬番</th><th>馬名</th><th>騎手</th><th>スコア</th>
+      <th>上がり</th><th>脚質</th><th>騎手率</th><th>距離率</th><th>回り率</th>
+      <th>安定</th><th>血統</th><th>調教師</th><th>オッズ</th><th>根拠</th>
+    </tr></thead>
+    <tbody></tbody>
+  `;
+
+  const tbody = table.querySelector('tbody');
+
+  // スコア降順（sorted）でそのまま表示。上位5位まで印を付与
+  sorted.forEach((h, idx) => {
+    const m = idx < 5 ? MARKS[idx] : null;
+    const styleCls = STYLE_CLS[h.style] || '';
+
+    const reasonHtml = h.reasons.length > 0
+      ? `<div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center;">${h.reasons.map(r =>
+          `<span style="background:#0f1f0f;border:1px solid #1e3a1e;border-radius:3px;padding:1px 4px;font-size:.58rem;color:${r.norm>=80?'#4adf80':'#f5c842'}">${r.label}</span>`
+        ).join('')}</div>`
+      : '<span style="color:var(--muted);font-size:.6rem">—</span>';
+
+    const oddsHtml = h.odds !== null
+      ? '<span style="font-weight:700;color:'+(h.odds<5?'#ff5a5a':h.odds<15?'#f5c842':'#5a7a5a')+'">'+h.odds+'倍</span>'
+      : '—';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted);font-weight:700">${idx+1}</td>
+      <td class="td-mark" style="color:${m ? markColor(m.cls) : 'var(--muted)'}">${m ? m.mark : '　'}</td>
+      <td style="color:${numColor(h.num)};font-weight:700">${h.num}</td>
+      <td class="td-name">${h.name}</td>
+      <td>${h.jockey}</td>
+      <td class="td-score ${idx<3?'score-hi':''}">${h.score}</td>
+      <td class="${h.avg3f!==null && h.avg3f<=34.2?'pct-hi':h.avg3f!==null && h.avg3f<=34.8?'pct-mid':'pct-lo'}">${h.avg3f ?? '—'}</td>
+      <td><span class="style-badge style-${styleCls}">${h.style || '—'}</span></td>
+      <td class="${pctClass(h.kishi)}">${fmtPct(h.kishi)}</td>
+      <td class="${pctClass(h.kyori)}">${fmtPct(h.kyori)}</td>
+      <td class="${pctClass(h.mawari)}">${fmtPct(h.mawari)}</td>
+      <td class="${pctClass(h.renso)}">${fmtPct(h.renso)}</td>
+      <td class="${pctClass(h.sireWin)}">${fmtPct(h.sireWin)}</td>
+      <td class="${pctClass(h.chokyoshi)}">${fmtPct(h.chokyoshi)}</td>
+      <td>${oddsHtml}</td>
+      <td>${reasonHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tableWrap.appendChild(table);
+  container.appendChild(tableWrap);
+
+  // ===== 使用重み表示 =====
+  const weightTitle = document.createElement('div');
+  weightTitle.className = 'section-title';
+  weightTitle.textContent = `⚙ 使用した重み設定（condition_master）`;
+  container.appendChild(weightTitle);
+
+  const WEIGHT_LABELS = {
+    agari:'上がり', sashi:'差し', senko:'先行', nige:'逃げ', oikomi:'追込',
+    kishu:'騎手', kyori:'距離', mawari:'回り', antei:'安定', ketto:'血統', chokyoshi:'調教師'
+  };
+  const weightDiv = document.createElement('div');
+  weightDiv.style.cssText = 'font-size:.7rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;';
+  Object.entries(weights).forEach(([k,v]) => {
+    const span = document.createElement('span');
+    span.style.cssText = 'background:#0f1a0f;border:1px solid var(--border);border-radius:4px;padding:2px 6px;';
+    const vDisp = (typeof v === 'number') ? (Number.isInteger(v) ? v : v.toFixed(1)) : v;
+    span.textContent = `${WEIGHT_LABELS[k]||k}:${vDisp}`;
+    weightDiv.appendChild(span);
+  });
+  container.appendChild(weightDiv);
+}
+
+function markColor(cls) {
+  return { honmei:'#ff5a5a', taikou:'#5aaaee', tan:'#4adf80', renpuku:'#9ab09a', hoshi:'#f5c842' }[cls] || '#fff';
+}
+function numColor(n) {
+  const cols = ['','#fff','#000','#c00','#4040c0','#f5c842','#4da04d','#f07800','#ff8080',
+    '#ddd','#6090c0','#c08000','#999','#ccc','#80a020','#8040c0','#bbb','#a0a0a0','#505050'];
+  return cols[n] || '#e6e1d3';
+}
+
+</script>
+</body>
+</html>
