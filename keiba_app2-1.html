@@ -610,96 +610,105 @@ function analyzeRace(horses) {
 //  スコアリング（オッズは使わない）
 // ============================================================
 function scoreHorses(horses, weights) {
-  function normalize01(arr) {
+  // レース内の値配列から MIN/MAX を取得するヘルパー
+  function minmax(arr) {
     const valid = arr.filter(v => v !== null && !isNaN(v));
-    if (valid.length === 0) return arr.map(() => 50);
-    const mn = Math.min(...valid), mx = Math.max(...valid);
-    if (mx === mn) return arr.map(() => 50);
-    return arr.map(v => (v === null || isNaN(v)) ? 50 : ((v - mn) / (mx - mn)) * 100);
+    if (valid.length === 0) return { min: 0, max: 0 };
+    return { min: Math.min(...valid), max: Math.max(...valid) };
   }
-  function normalizeInv(arr) {
-    return normalize01(arr).map(v => 100 - v);
+
+  // スプレッドシート式と同じ「レース内相対評価(0-100) × 重み ÷ 100」
+  // 値が大きいほど良い項目用
+  function relScore(value, mn, mx, weight) {
+    if (value === null || isNaN(value)) return null;
+    let norm;
+    if (mx === mn) norm = 50;
+    else norm = (value - mn) / (mx - mn) * 100;
+    return norm * weight / 100;
+  }
+
+  // 値が小さいほど良い項目用（上がり力=平均3F）
+  function relScoreInv(value, mn, mx, weight) {
+    if (value === null || isNaN(value)) return null;
+    let norm;
+    if (mx === mn) norm = 50;
+    else norm = (mx - value) / (mx - mn) * 100;
+    return norm * weight / 100;
   }
 
   const race = analyzeRace(horses);
 
-  // 上がり3F：脚質補正（差し・追込は重視、先行はやや、逃げは低め）
-  const f3Normed = normalizeInv(horses.map(h => h.avg3f));
-  const agariNormed = horses.map((h, i) => {
-    const base = f3Normed[i];
-    const mult = (h.style === '差し' || h.style === '追込') ? 1.0
-               : (h.style === '先行') ? 0.6 : 0.4;
-    return base * mult;
-  });
-
-  // 安定力：連対率＋平均着順(逆)を合成
-  const rensoNormed = normalize01(horses.map(h => h.renso));
-  const avgRankNormed = normalizeInv(horses.map(h => h.avgRank));
-  const anteiNormed = horses.map((h,i) => (rensoNormed[i] * 0.5 + avgRankNormed[i] * 0.5));
-
-  // その他の単純正規化項目
-  const kishuNormed     = normalize01(horses.map(h => h.kishi));
-  const kyoriNormed     = normalize01(horses.map(h => h.kyori));
-  const mawariNormed    = normalize01(horses.map(h => h.mawari));
-  const kettoNormed     = normalize01(horses.map(h => h.sireWin));
-  const chokyoshiNormed = normalize01(horses.map(h => h.chokyoshi));
+  // 各列のレース内 MIN/MAX
+  const mmAvg3f = minmax(horses.map(h => h.avg3f));
+  const mmKishi = minmax(horses.map(h => h.kishi));
+  const mmKyori = minmax(horses.map(h => h.kyori));
+  const mmMawari = minmax(horses.map(h => h.mawari));
+  const mmRenso = minmax(horses.map(h => h.renso));
+  const mmSireWin = minmax(horses.map(h => h.sireWin));
+  const mmChokyoshi = minmax(horses.map(h => h.chokyoshi));
 
   // 脚質重み（差し/先行/逃げ/追込）：condition_master の該当列をそのまま使う
   const STYLE_WEIGHT_KEY = { '差し':'sashi', '先行':'senko', '逃げ':'nige', '追込':'oikomi' };
 
   const LABELS = {
-    agari:'上がり力', kyakushitsu:'脚質適性', kishu:'騎手力', kyori:'距離適性',
-    mawari:'回り適性', antei:'安定感', ketto:'血統', chokyoshi:'調教師'
+    agari:'上がり力', kyakushitsu:'脚質力', kishu:'騎手力', kyori:'距離力',
+    mawari:'回り力', antei:'安定力', ketto:'血統力', chokyoshi:'調教師力'
   };
 
-  // 各馬ごとにスコアを計算
-  const rawScores = horses.map((h, i) => {
-    let score = 0;
+  // 各馬ごとにスコアを計算（スプレッドシートのT〜AC列の式と1対1対応）
+  const rawScores = horses.map((h) => {
     const contribs = {};
 
-    // 通常8項目（脚質以外）
-    const normedMap = {
-      agari: agariNormed[i],
-      kishu: kishuNormed[i],
-      kyori: kyoriNormed[i],
-      mawari: mawariNormed[i],
-      antei: anteiNormed[i],
-      ketto: kettoNormed[i],
-      chokyoshi: chokyoshiNormed[i],
-    };
-    Object.entries(normedMap).forEach(([k, n]) => {
-      const w = weights[k] || 0;
-      const contrib = (n / 100) * w;
-      contribs[k] = { norm: n, contrib, weight: w };
-      score += contrib;
+    // 上がり力 U列：avg3fが小さいほど高評価
+    const agari = relScoreInv(h.avg3f, mmAvg3f.min, mmAvg3f.max, weights.agari || 0);
+
+    // 脚質力 V列：該当する脚質重みそのまま
+    const styleKey = STYLE_WEIGHT_KEY[h.style];
+    const kyakushitsu = styleKey ? (weights[styleKey] || 0) : 0;
+
+    // 騎手力 W列
+    const kishu = relScore(h.kishi, mmKishi.min, mmKishi.max, weights.kishu || 0);
+
+    // 距離力 X列
+    const kyori = relScore(h.kyori, mmKyori.min, mmKyori.max, weights.kyori || 0);
+
+    // 回り力 Y列
+    const mawari = relScore(h.mawari, mmMawari.min, mmMawari.max, weights.mawari || 0);
+
+    // 安定力 Z列：連対率(renso)のみで判定（スプレッドシート式に準拠）
+    const antei = relScore(h.renso, mmRenso.min, mmRenso.max, weights.antei || 0);
+
+    // 血統力 AA列：sireWin（クラス補正連対率）
+    const ketto = relScore(h.sireWin, mmSireWin.min, mmSireWin.max, weights.ketto || 0);
+
+    // 調教師力 AB列
+    const chokyoshi = relScore(h.chokyoshi, mmChokyoshi.min, mmChokyoshi.max, weights.chokyoshi || 0);
+
+    const values = { agari, kyakushitsu, kishu, kyori, mawari, antei, ketto, chokyoshi };
+    Object.entries(values).forEach(([k, v]) => {
+      contribs[k] = { value: (v === null ? 0 : v) };
     });
 
-    // 脚質：その馬の脚質に対応する重みを使用（差し重み/先行重み/逃げ重み/追込重み）
-    const styleKey = STYLE_WEIGHT_KEY[h.style];
-    const styleWeight = styleKey ? (weights[styleKey] || 0) : 0;
-    // 展開ボーナスを正規化スコアに反映（50を基準に±bonus*250）
-    const paceBonus = race.styleBonus[h.style] || 0;
-    const styleNorm = Math.max(0, Math.min(100, 50 + paceBonus * 250));
-    const styleContrib = (styleNorm / 100) * styleWeight;
-    contribs['kyakushitsu'] = { norm: styleNorm, contrib: styleContrib, weight: styleWeight };
-    score += styleContrib;
+    // 総合力 AC列：8項目の単純合計（null は 0 扱い）
+    const total = Object.values(values).reduce((s, v) => s + (v === null ? 0 : v), 0);
 
-    return { score, contribs };
+    return { total, contribs };
   });
 
-  const maxRaw = Math.max(...rawScores.map(r => r.score));
+  const maxRaw = Math.max(...rawScores.map(r => r.total));
 
   const scored = horses.map((h, i) => {
-    const { score: raw, contribs } = rawScores[i];
-    const finalScore = maxRaw > 0 ? Math.round((raw / maxRaw) * 100) : 50;
+    const { total, contribs } = rawScores[i];
+    // アプリ表示用に100点満点へスケーリング（順位は総合力=total順と一致）
+    const finalScore = maxRaw > 0 ? Math.round((total / maxRaw) * 100) : 50;
 
     const reasons = Object.entries(contribs)
-      .sort((a,b) => b[1].contrib - a[1].contrib)
+      .sort((a,b) => b[1].value - a[1].value)
       .slice(0, 4)
-      .filter(([,v]) => v.norm >= 55)
-      .map(([k,v]) => ({ key:k, label: LABELS[k], norm: v.norm }));
+      .filter(([,v]) => v.value > 0)
+      .map(([k,v]) => ({ key:k, label: LABELS[k], norm: v.value }));
 
-    return { ...h, score: finalScore, contribs, reasons };
+    return { ...h, score: finalScore, total, contribs, reasons };
   });
 
   return { horses: scored, race, maxRaw };
@@ -760,7 +769,7 @@ function pctClass(v) {
 function fmtPct(v) { return v === null ? '—' : v.toFixed(1) + '%'; }
 
 function renderRaceScreen(raceData, displayLabel) {
-  const { raceInfo, horses, weights } = raceData;
+  const { raceInfo, horses, weights, dataSufficient, horsesWithHistory } = raceData;
 
   document.getElementById('result-meta').textContent =
     `${raceInfo.venue || '?'} ${raceInfo.surface || ''}${raceInfo.distance || '?'}m ${raceInfo.turn || ''}回り（${raceInfo.distCat || '?'}）　出走 ${horses.length}頭`;
@@ -768,15 +777,33 @@ function renderRaceScreen(raceData, displayLabel) {
   const body = document.getElementById('result-body');
   body.innerHTML = '';
 
+  // データ不足警告（新馬戦・未勝利戦などを想定）
+  if (!dataSufficient) {
+    const warn = document.createElement('div');
+    warn.style.cssText = 'padding:14px 16px;border:1px solid #6a4a1a;background:#1a1408;' +
+      'border-radius:8px;font-size:.78rem;color:#f0c878;line-height:1.8;margin-bottom:10px;';
+    warn.innerHTML = `⚠ このレースは過去成績データが不足しています<br>` +
+      `（過去成績あり ${horsesWithHistory} / ${horses.length} 頭）<br>` +
+      `新馬戦・未勝利戦などの可能性があり、予想精度が低くなります。`;
+    body.appendChild(warn);
+  }
+
   // 予想ボタン
   const predictBtn = document.createElement('button');
   predictBtn.id = 'btn-predict';
-  predictBtn.textContent = '▶ 予想スコアを計算';
+  if (dataSufficient) {
+    predictBtn.textContent = '▶ 予想スコアを計算';
+  } else {
+    predictBtn.textContent = '⚠ データ不足のため予想非対応';
+    predictBtn.disabled = true;
+  }
   body.appendChild(predictBtn);
 
   const resultArea = document.createElement('div');
   resultArea.id = 'prediction-result';
   body.appendChild(resultArea);
+
+  if (!dataSufficient) return; // 予想計算自体を行わない
 
   predictBtn.addEventListener('click', () => {
     predictBtn.disabled = true;
@@ -899,7 +926,7 @@ function renderPrediction(container, scored, race, weights) {
   const table = document.createElement('table');
   table.innerHTML = `
     <thead><tr>
-      <th>順</th><th>印</th><th>馬番</th><th>馬名</th><th>騎手</th><th>スコア</th>
+      <th>順</th><th>印</th><th>馬番</th><th>馬名</th><th>騎手</th><th>総合力</th><th>スコア</th>
       <th>上がり</th><th>脚質</th><th>騎手率</th><th>距離率</th><th>回り率</th>
       <th>安定</th><th>血統</th><th>調教師</th><th>オッズ</th><th>根拠</th>
     </tr></thead>
@@ -930,6 +957,7 @@ function renderPrediction(container, scored, race, weights) {
       <td style="color:${numColor(h.num)};font-weight:700">${h.num}</td>
       <td class="td-name">${h.name}</td>
       <td>${h.jockey}</td>
+      <td style="color:var(--muted)">${h.total.toFixed(1)}</td>
       <td class="td-score ${idx<3?'score-hi':''}">${h.score}</td>
       <td class="${h.avg3f!==null && h.avg3f<=34.2?'pct-hi':h.avg3f!==null && h.avg3f<=34.8?'pct-mid':'pct-lo'}">${h.avg3f ?? '—'}</td>
       <td><span class="style-badge style-${styleCls}">${h.style || '—'}</span></td>
