@@ -114,7 +114,7 @@ body{
   min-height:1.2em;
 }
 
-#btn-refresh-list{
+#btn-refresh-list,#btn-open-verify{
   display:block;
   margin:14px auto 0;
   padding:8px 22px;
@@ -129,9 +129,9 @@ body{
 }
 
 /* ===== RESULT SCREEN ===== */
-#screen-result{padding:0;}
+#screen-result,#screen-verify{padding:0;}
 
-#result-header{
+#result-header,#verify-header{
   flex-shrink:0;
   display:flex;
   align-items:center;
@@ -155,7 +155,7 @@ body{
 .icon-btn.home{color:var(--gold);border-color:var(--gold);}
 .icon-btn.clear{color:#f08080;border-color:#4a2020;}
 
-#result-title{
+#result-title,#verify-title{
   flex:1;
   text-align:center;
   font-size:.8rem;
@@ -169,7 +169,7 @@ body{
   padding:4px 0 8px;
 }
 
-#result-body{
+#result-body,#verify-body{
   flex:1;
   overflow-y:auto;
   -webkit-overflow-scrolling:touch;
@@ -315,10 +315,21 @@ tr:hover td{background:rgba(30,60,30,.3);}
 <div class="screen active" id="screen-home">
   <div id="venue-groups"></div>
   <button id="btn-refresh-list">🔄 レース一覧を再読込</button>
+  <button id="btn-open-verify" style="margin-top:8px;">📊 検証・重み調整</button>
   <div style="text-align:center;margin-top:8px;">
     <a href="javascript:void(0)" onclick="resetGasUrl()" style="font-size:.65rem;color:var(--muted);text-decoration:underline;">⚙ GAS URL設定を変更</a>
   </div>
   <div id="home-status"></div>
+</div>
+
+<!-- ===== VERIFY SCREEN ===== -->
+<div class="screen" id="screen-verify">
+  <div id="verify-header">
+    <button class="icon-btn home" id="btn-home-from-verify">🏠 ホーム</button>
+    <div id="verify-title">📊 検証・重み調整</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div id="verify-body"></div>
 </div>
 
 <!-- ===== RESULT SCREEN ===== -->
@@ -368,6 +379,8 @@ window.addEventListener('load', () => {
   document.getElementById('btn-refresh-list').addEventListener('click', loadSheetList);
   document.getElementById('btn-home').addEventListener('click', showHome);
   document.getElementById('btn-clear-result').addEventListener('click', clearResult);
+  document.getElementById('btn-open-verify').addEventListener('click', openVerifyScreen);
+  document.getElementById('btn-home-from-verify').addEventListener('click', showHome);
 
   if (!CONFIG.GAS_URL) {
     showSetupScreen();
@@ -564,10 +577,17 @@ async function openRace(sheetName, displayLabel) {
 function showHome() {
   document.getElementById('screen-home').classList.add('active');
   document.getElementById('screen-result').classList.remove('active');
+  document.getElementById('screen-verify').classList.remove('active');
 }
 function showResultScreen() {
   document.getElementById('screen-home').classList.remove('active');
   document.getElementById('screen-result').classList.add('active');
+  document.getElementById('screen-verify').classList.remove('active');
+}
+function showVerifyScreen() {
+  document.getElementById('screen-home').classList.remove('active');
+  document.getElementById('screen-result').classList.remove('active');
+  document.getElementById('screen-verify').classList.add('active');
 }
 function clearResult() {
   document.getElementById('result-body').innerHTML = '';
@@ -772,6 +792,9 @@ function renderRaceScreen(raceData, displayLabel) {
   document.getElementById('result-meta').textContent =
     `${raceInfo.venue || '?'} ${raceInfo.surface || ''}${raceInfo.distance || '?'}m ${raceInfo.turn || ''}回り（${raceInfo.distCat || '?'}）　出走 ${horses.length}頭`;
 
+  // 条件キー（condition_masterのキーと同じ形式: 例 "東京ダ1600"）
+  const conditionKey = `${raceInfo.venue || ''}${raceInfo.surface || ''}${raceInfo.distance || ''}`;
+
   const body = document.getElementById('result-body');
   body.innerHTML = '';
 
@@ -809,14 +832,44 @@ function renderRaceScreen(raceData, displayLabel) {
     setTimeout(() => {
       const { horses: scored, race } = scoreHorses(horses, weights);
       const withEV = analyzeEV(scored);
-      renderPrediction(resultArea, withEV, race, weights);
+      renderPrediction(resultArea, withEV, race, weights, displayLabel, conditionKey);
       predictBtn.textContent = '🔄 再計算';
       predictBtn.disabled = false;
     }, 50);
   });
 }
 
-function renderPrediction(container, scored, race, weights) {
+/**
+ * 予想結果をGAS経由で「予想ログ」シートに記録する（非同期・結果は待たない）
+ */
+function sendPredictionLog(raceLabel, conditionKey, horses) {
+  if (!CONFIG.GAS_URL) return;
+  const payload = {
+    action: 'logPrediction',
+    raceLabel: raceLabel || '',
+    conditionKey: conditionKey || '',
+    horses: horses.map(h => ({
+      num: h.num,
+      name: h.name,
+      mark: h.mark || '',
+      total: h.total,
+      agari: h.contribs?.agari?.value ?? 0,
+      kyakushitsu: h.contribs?.kyakushitsu?.value ?? 0,
+      kishu: h.contribs?.kishu?.value ?? 0,
+      kyori: h.contribs?.kyori?.value ?? 0,
+      mawari: h.contribs?.mawari?.value ?? 0,
+      antei: h.contribs?.antei?.value ?? 0,
+      ketto: h.contribs?.ketto?.value ?? 0,
+      chokyoshi: h.contribs?.chokyoshi?.value ?? 0,
+    })),
+  };
+  fetch(CONFIG.GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }).catch(() => { /* ログ送信失敗は無視（予想表示自体は成功させる） */ });
+}
+
+function renderPrediction(container, scored, race, weights, raceLabel, conditionKey) {
   container.innerHTML = '';
 
   // ===== 展開分析バナー =====
@@ -838,6 +891,10 @@ function renderPrediction(container, scored, race, weights) {
   // ===== 上位5頭カード =====
   const sorted = [...scored].sort((a,b) => b.score - a.score);
   const maxScore = sorted[0].score || 1;
+
+  // 印を各馬に付与（ログ記録用）
+  sorted.forEach((h, i) => { h.mark = MARKS[i] ? MARKS[i].mark : ''; });
+  sendPredictionLog(raceLabel, conditionKey, sorted);
 
   const top5Title = document.createElement('div');
   top5Title.className = 'section-title';
@@ -1002,6 +1059,180 @@ function numColor(n) {
   const cols = ['','#fff','#000','#c00','#4040c0','#f5c842','#4da04d','#f07800','#ff8080',
     '#ddd','#6090c0','#c08000','#999','#ccc','#80a020','#8040c0','#bbb','#a0a0a0','#505050'];
   return cols[n] || '#e6e1d3';
+}
+
+// ============================================================
+//  検証・重み調整画面
+// ============================================================
+async function openVerifyScreen() {
+  showVerifyScreen();
+  const body = document.getElementById('verify-body');
+  body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">読み込み中...</div>';
+
+  if (!CONFIG.GAS_URL) {
+    body.innerHTML = '<div class="error-box">GAS URLが設定されていません。</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${CONFIG.GAS_URL}?action=conditionList`);
+    const data = await res.json();
+    renderConditionList(body, data.conditions || []);
+  } catch (err) {
+    body.innerHTML = `<div class="error-box">⚠ 読み込みエラー：${err.message}</div>`;
+  }
+}
+
+function renderConditionList(body, conditions) {
+  body.innerHTML = '';
+
+  const desc = document.createElement('div');
+  desc.style.cssText = 'font-size:.7rem;color:var(--muted);line-height:1.7;margin-bottom:12px;';
+  desc.innerHTML = '予想を計算すると自動的にログが記録されます。レース結果（着順）は「予想ログ」シートのP列に手入力してください。3レース以上結果が入力された条件キーで検証できます。';
+  body.appendChild(desc);
+
+  if (conditions.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;color:var(--muted);padding:20px;font-size:.75rem;';
+    empty.textContent = 'まだログがありません。レースの予想を計算すると記録されます。';
+    body.appendChild(empty);
+    return;
+  }
+
+  const title = document.createElement('div');
+  title.className = 'section-title';
+  title.textContent = '条件キーを選択';
+  body.appendChild(title);
+
+  conditions
+    .sort((a,b) => b.withResult - a.withResult)
+    .forEach(c => {
+      const item = document.createElement('button');
+      item.style.cssText = 'width:100%;display:flex;justify-content:space-between;align-items:center;' +
+        'padding:12px 14px;margin-bottom:6px;background:#141f14;border:1px solid var(--border);' +
+        'border-radius:8px;color:var(--text);font-family:inherit;text-align:left;';
+      item.innerHTML = `<span style="font-weight:700">${c.conditionKey}</span>` +
+        `<span style="font-size:.68rem;color:var(--muted)">結果入力済 ${c.withResult} / 全${c.totalHorses}件</span>`;
+      item.addEventListener('click', () => loadVerificationResult(c.conditionKey));
+      body.appendChild(item);
+    });
+}
+
+async function loadVerificationResult(conditionKey) {
+  const body = document.getElementById('verify-body');
+  body.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">分析中...</div>';
+
+  try {
+    const res = await fetch(`${CONFIG.GAS_URL}?action=verify&conditionKey=${encodeURIComponent(conditionKey)}`);
+    const data = await res.json();
+    renderVerificationResult(body, data);
+  } catch (err) {
+    body.innerHTML = `<div class="error-box">⚠ 読み込みエラー：${err.message}</div>`;
+  }
+}
+
+function renderVerificationResult(body, data) {
+  body.innerHTML = '';
+
+  const back = document.createElement('button');
+  back.textContent = '← 条件キー一覧に戻る';
+  back.style.cssText = 'margin-bottom:12px;background:#141f14;border:1px solid var(--border);' +
+    'border-radius:8px;color:var(--muted);font-size:.7rem;padding:8px 12px;font-family:inherit;';
+  back.addEventListener('click', openVerifyScreen);
+  body.appendChild(back);
+
+  const title = document.createElement('div');
+  title.className = 'section-title';
+  title.textContent = `📊 ${data.conditionKey}`;
+  body.appendChild(title);
+
+  if (data.error) {
+    body.innerHTML += `<div class="error-box">⚠ ${data.error}</div>`;
+    return;
+  }
+
+  if (data.insufficient) {
+    const warn = document.createElement('div');
+    warn.style.cssText = 'padding:14px 16px;border:1px solid #6a4a1a;background:#1a1408;' +
+      'border-radius:8px;font-size:.78rem;color:#f0c878;line-height:1.8;';
+    warn.textContent = data.message;
+    body.appendChild(warn);
+    return;
+  }
+
+  const meta = document.createElement('div');
+  meta.style.cssText = 'font-size:.68rem;color:var(--muted);margin-bottom:12px;';
+  meta.textContent = `検証データ：${data.sampleRaces}レース分`;
+  body.appendChild(meta);
+
+  const ITEM_ORDER = ['agari','kyakushitsu','kishu','kyori','mawari','antei','ketto','chokyoshi'];
+
+  ITEM_ORDER.forEach(item => {
+    const r = data.results[item];
+    if (!r) return;
+
+    const evalColor = r.evaluation.startsWith('◎') ? '#4adf80'
+      : r.evaluation.startsWith('○') ? '#9adf80'
+      : r.evaluation.startsWith('△') ? '#f5c842'
+      : r.evaluation.startsWith('✗') ? '#e05050' : 'var(--muted)';
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;' +
+      'padding:10px 12px;margin-bottom:6px;background:#101a10;border:1px solid var(--border);border-radius:8px;';
+
+    const left = document.createElement('div');
+    left.innerHTML = `<div style="font-weight:700;font-size:.78rem;">${r.label}</div>` +
+      `<div style="font-size:.68rem;color:${evalColor};margin-top:2px;">${r.evaluation}</div>`;
+
+    const right = document.createElement('div');
+    right.style.cssText = 'display:flex;gap:6px;align-items:center;';
+
+    const minusBtn = document.createElement('button');
+    minusBtn.textContent = '－';
+    minusBtn.style.cssText = 'width:32px;height:32px;border-radius:6px;background:#2a1414;' +
+      'border:1px solid #5a2a2a;color:#f08080;font-weight:900;font-family:inherit;';
+    minusBtn.addEventListener('click', () => adjustWeight(data.conditionKey, item, -2, row));
+
+    const plusBtn = document.createElement('button');
+    plusBtn.textContent = '＋';
+    plusBtn.style.cssText = 'width:32px;height:32px;border-radius:6px;background:#142a14;' +
+      'border:1px solid #2a5a2a;color:#80f080;font-weight:900;font-family:inherit;';
+    plusBtn.addEventListener('click', () => adjustWeight(data.conditionKey, item, 2, row));
+
+    right.appendChild(minusBtn);
+    right.appendChild(plusBtn);
+    row.appendChild(left);
+    row.appendChild(right);
+    body.appendChild(row);
+  });
+
+  const note = document.createElement('div');
+  note.style.cssText = 'font-size:.65rem;color:var(--muted);margin-top:14px;line-height:1.7;';
+  note.textContent = '＋／－ボタンでcondition_masterの重みを2ずつ調整できます（即時反映、即時保存）。';
+  body.appendChild(note);
+}
+
+async function adjustWeight(conditionKey, item, delta, rowEl) {
+  rowEl.style.opacity = '0.5';
+  try {
+    const res = await fetch(CONFIG.GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'updateWeight', conditionKey, item, delta }),
+    });
+    const data = await res.json();
+    rowEl.style.opacity = '1';
+    if (data.error) {
+      alert('⚠ ' + data.error);
+    } else {
+      const flash = document.createElement('div');
+      flash.style.cssText = 'font-size:.65rem;color:#80f080;margin-top:4px;';
+      flash.textContent = `重み更新：${data.oldValue} → ${data.newValue}`;
+      rowEl.appendChild(flash);
+    }
+  } catch (err) {
+    rowEl.style.opacity = '1';
+    alert('⚠ 更新に失敗しました：' + err.message);
+  }
 }
 
 </script>
