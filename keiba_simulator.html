@@ -195,27 +195,88 @@ textarea.paste-area{
 .track-wrap{
   background:linear-gradient(180deg,var(--turf) 0%,var(--turf-light) 100%);
   border-bottom:2px solid var(--rail);
-  padding:10px 0;
+  padding:6px 0;
+  display:flex;
+  align-items:stretch;
+  gap:0;
+}
+.board-side{
+  flex-shrink:0;
+  width:78px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+  padding:4px 5px;
+  border-right:2px solid var(--rail);
+  background:#06190f;
+}
+.board-side-title{
+  text-align:center;
+  font-size:.5rem;
+  font-weight:900;
+  color:var(--gold);
+  letter-spacing:.1em;
+  margin-bottom:2px;
+  visibility:hidden;
+}
+.board-card{
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:2px 3px;
+  border-radius:5px;
+  background:#0a1f13;
+  border:1px solid #143020;
+}
+.board-card-mark{
+  font-size:.62rem;
+  font-weight:900;
+  color:var(--muted);
+  width:13px;
+  text-align:center;
+  flex-shrink:0;
+}
+.lamp-digit{
+  flex:1;
+  height:22px;
+  background:var(--board-lamp-off);
+  border:1px solid #1c4530;
+  border-radius:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:.78rem;
+  font-weight:900;
+  font-family:'Courier New',monospace;
+  color:transparent;
+  transition:color .15s, background .15s, box-shadow .15s;
+}
+.lamp-digit.flash{
+  color:var(--board-lamp-on);
+  background:#0d3a26;
+}
+.lanes-side{
+  flex:1;
   position:relative;
-  overflow:hidden;
 }
 .race-meta-bar{
-  padding:8px 16px;
-  font-size:.68rem;
+  padding:6px 16px;
+  font-size:.64rem;
   color:var(--muted);
   text-align:center;
   border-bottom:1px solid var(--border);
 }
 .lane{
   position:relative;
-  height:30px;
+  height:19px;
   border-bottom:1px dashed rgba(255,255,255,.06);
 }
 .lane:last-child{border-bottom:none;}
 .goal-line{
   position:absolute;
   top:0;bottom:0;
-  left:88%;
+  left:6px;
   width:0;
   border-left:3px dashed var(--honmei);
   z-index:5;
@@ -223,9 +284,8 @@ textarea.paste-area{
 .goal-label{
   position:absolute;
   top:2px;
-  left:88%;
-  transform:translateX(4px);
-  font-size:.55rem;
+  left:6px;
+  font-size:.5rem;
   font-weight:900;
   color:var(--honmei);
   letter-spacing:.05em;
@@ -233,24 +293,29 @@ textarea.paste-area{
 }
 .horse-runner{
   position:absolute;
-  top:2px;
-  left:0;
+  top:1px;
+  right:0;
   display:flex;
   align-items:center;
-  gap:3px;
-  font-size:.85rem;
+  gap:2px;
+  font-size:.65rem;
   white-space:nowrap;
-  transition:left linear;
+  transition:right linear;
   z-index:3;
 }
+.horse-runner .horse-ico{
+  display:inline-block;
+}
 .horse-runner .num-tag{
-  font-size:.58rem;
+  font-size:.5rem;
   font-weight:900;
-  padding:1px 4px;
-  border-radius:4px;
+  padding:1px 3px;
+  border-radius:3px;
   background:#222;
   color:#fff;
   border:1px solid rgba(255,255,255,.2);
+  min-width:1.3em;
+  text-align:center;
 }
 .runner-mark-honmei .num-tag{background:var(--honmei);color:#fff;}
 .runner-mark-taikou .num-tag{background:var(--taikou);color:#fff;}
@@ -259,10 +324,10 @@ textarea.paste-area{
 .runner-mark-hoshi .num-tag{background:var(--hoshi);color:#1a1408;}
 
 .race-controls{
-  padding:14px 16px;
+  padding:10px 16px;
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:8px;
 }
 .speed-row{
   display:flex;
@@ -279,85 +344,11 @@ textarea.paste-area{
   text-align:center;
 }
 
-/* ===== ELECTRONIC BOARD (keijiban) ===== */
-.board-wrap{
-  background:var(--board-bg);
-  border:2px solid #143020;
-  border-radius:6px;
-  margin:14px 16px 0;
-  padding:14px 10px;
-  display:none;
-}
-.board-wrap.show{display:block;}
-.board-title{
-  text-align:center;
-  font-size:.7rem;
-  color:var(--gold);
-  font-weight:900;
-  letter-spacing:.15em;
-  margin-bottom:10px;
-}
-.board-rows{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-.board-row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.board-rank-label{
-  width:34px;
-  font-size:.85rem;
-  font-weight:900;
-  color:var(--muted);
-  text-align:center;
-}
-.board-lamp-cell{
-  display:flex;
-  gap:4px;
-}
-.lamp-digit{
-  width:30px;
-  height:42px;
-  background:var(--board-lamp-off);
-  border:1px solid #1c4530;
-  border-radius:4px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:1.3rem;
-  font-weight:900;
-  font-family:'Courier New',monospace;
-  color:transparent;
-  transition:color .15s, background .15s, box-shadow .15s;
-}
-.lamp-digit.flash{
-  color:var(--board-lamp-on);
-  background:#0d3a26;
-}
 .lamp-digit.lit{
   color:var(--board-lamp-on);
   background:#0d3a26;
-  box-shadow:0 0 10px var(--board-lamp-glow), 0 0 2px var(--board-lamp-glow) inset;
+  box-shadow:0 0 8px var(--board-lamp-glow), 0 0 2px var(--board-lamp-glow) inset;
 }
-.board-row-name{
-  font-size:.72rem;
-  color:var(--text);
-  flex:1;
-  opacity:0;
-  transition:opacity .3s;
-}
-.board-row-name.show{opacity:1;}
-.board-row-jockey{
-  font-size:.6rem;
-  color:var(--muted);
-  opacity:0;
-  transition:opacity .3s;
-}
-.board-row-jockey.show{opacity:1;}
-
 /* ===== RESULT TABLE (full ranking) ===== */
 .result-table-wrap{
   margin-top:18px;
@@ -609,12 +600,18 @@ function scoreHorses(horses, weights) {
 // ============================================================
 //  画面状態
 // ============================================================
+const VENUE_TURN_MAP = {
+  '札幌':'右','函館':'右','福島':'右','新潟':'左',
+  '東京':'左','中山':'右','中京':'左','京都':'右',
+  '阪神':'右','小倉':'右',
+};
+
 const state = {
   venue: '東京',
   surface: '芝',
   distance: 1600,
-  turn: '左',
-  headcount: 16,
+  turn: VENUE_TURN_MAP['東京'],
+  headcount: 0,      // 0は「貼り付けデータから自動取得」を意味する
   horses: [],       // スコア計算済み・predictedRank昇順
 };
 
@@ -630,7 +627,7 @@ function renderInputScreen() {
   // 競馬場
   const venueGroup = document.createElement('div');
   venueGroup.className = 'field-group';
-  venueGroup.innerHTML = `<div class="field-label">競馬場</div>`;
+  venueGroup.innerHTML = `<div class="field-label">競馬場（選ぶと回りが自動設定されます）</div>`;
   const venueGrid = document.createElement('div');
   venueGrid.className = 'venue-grid';
   VENUES.forEach(v => {
@@ -639,6 +636,7 @@ function renderInputScreen() {
     btn.textContent = v;
     btn.addEventListener('click', () => {
       state.venue = v;
+      state.turn = VENUE_TURN_MAP[v] || state.turn;
       renderInputScreen();
     });
     venueGrid.appendChild(btn);
@@ -655,6 +653,7 @@ function renderInputScreen() {
 
   const distInput = document.createElement('input');
   distInput.type = 'number';
+  distInput.id = 'dist-input';
   distInput.className = 'num-input';
   distInput.placeholder = '距離(m)';
   distInput.value = state.distance;
@@ -664,7 +663,7 @@ function renderInputScreen() {
   turnSelect.className = 'num-input';
   ['左','右','直'].forEach(t => {
     const opt = document.createElement('option');
-    opt.value = t; opt.textContent = t + '回り';
+    opt.value = t; opt.textContent = t + (t === '直' ? '' : '回り');
     if (t === state.turn) opt.selected = true;
     turnSelect.appendChild(opt);
   });
@@ -686,28 +685,30 @@ function renderInputScreen() {
   condGroup.appendChild(condRow);
   body.appendChild(condGroup);
 
-  // 出走頭数
-  const headGroup = document.createElement('div');
-  headGroup.className = 'field-group';
-  headGroup.innerHTML = `<div class="field-label">出走頭数</div>`;
-  const headInput = document.createElement('input');
-  headInput.type = 'number';
-  headInput.className = 'num-input';
-  headInput.min = 2; headInput.max = 18;
-  headInput.value = state.headcount;
-  headInput.addEventListener('input', () => { state.headcount = Number(headInput.value) || 0; });
-  headGroup.appendChild(headInput);
-  body.appendChild(headGroup);
 
   // データ貼り付け
   const pasteGroup = document.createElement('div');
   pasteGroup.className = 'field-group';
-  pasteGroup.innerHTML = `<div class="field-label">出走馬データ貼り付け</div>`;
+  pasteGroup.innerHTML = `<div class="field-label">出走馬データ貼り付け（頭数は自動で読み取ります）</div>`;
   const textarea = document.createElement('textarea');
   textarea.className = 'paste-area';
   textarea.id = 'paste-textarea';
   textarea.placeholder = '馬番　馬名　騎手　斤量　馬齢　種牡馬　母父　全成績連対率　種牡馬複勝率　騎手複勝率　調教師複勝率　競馬場複勝率　距離複勝率　回り複勝率　脚質　平均着順(過去5戦)　平均3F(過去5戦)　オッズ\n\nスプレッドシートの該当範囲を選択してコピー（Ctrl+C）し、ここに貼り付け（Ctrl+V）してください。';
   pasteGroup.appendChild(textarea);
+
+  const headcountDisplay = document.createElement('div');
+  headcountDisplay.id = 'headcount-display';
+  headcountDisplay.style.cssText = 'font-size:.72rem;color:var(--gold);margin-top:6px;font-weight:700;';
+  headcountDisplay.textContent = '出走頭数：未入力';
+  pasteGroup.appendChild(headcountDisplay);
+
+  textarea.addEventListener('input', () => {
+    const { horses } = parsePastedData(textarea.value);
+    headcountDisplay.textContent = horses.length > 0
+      ? `出走頭数：${horses.length}頭（自動検出）`
+      : '出走頭数：未入力';
+  });
+
   const hint = document.createElement('div');
   hint.className = 'hint';
   hint.textContent = '※ スプレッドシートで馬番〜オッズまでの列を選択 → コピー → ここに貼り付け　※ ヘッダー行（馬番・馬名…）は含めても含めなくてもOK';
@@ -720,6 +721,23 @@ function renderInputScreen() {
   calcBtn.textContent = '▶ 予想を計算してシミュレーション準備';
   calcBtn.addEventListener('click', onCalcClick);
   body.appendChild(calcBtn);
+
+  // クリアボタン（距離・貼り付けデータを消去）
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'btn-secondary';
+  clearBtn.textContent = '🗑 入力データをクリア';
+  clearBtn.addEventListener('click', () => {
+    state.distance = 0;
+    const dist = document.getElementById('dist-input');
+    if (dist) dist.value = '';
+    const ta = document.getElementById('paste-textarea');
+    if (ta) ta.value = '';
+    const hc = document.getElementById('headcount-display');
+    if (hc) hc.textContent = '出走頭数：未入力';
+    const err = document.getElementById('input-error');
+    if (err) err.innerHTML = '';
+  });
+  body.appendChild(clearBtn);
 
   const errorArea = document.createElement('div');
   errorArea.id = 'input-error';
@@ -737,11 +755,7 @@ function onCalcClick() {
     return;
   }
 
-  if (state.headcount && horses.length !== state.headcount) {
-    errorArea.innerHTML = `<div class="error-box">⚠ 入力された出走頭数（${state.headcount}頭）と、データの馬数（${horses.length}頭）が一致しません。出走頭数を直すか、データを確認してください。</div>`;
-    return;
-  }
-
+  state.headcount = horses.length;
   const weights = getWeights(state.venue, state.surface, state.distance);
   const scored = scoreHorses(horses, weights);
   state.horses = scored;
@@ -777,36 +791,48 @@ function renderRaceScreen() {
   metaBar.textContent = `${state.venue} ${state.surface}${state.distance}m ${state.turn}回り　出走 ${state.horses.length}頭`;
   body.appendChild(metaBar);
 
-  // ===== トラック =====
+  // ===== ①②トラック＋電光掲示板（横並び、ゴール側に掲示板を配置） =====
   const trackWrap = document.createElement('div');
   trackWrap.className = 'track-wrap';
   trackWrap.id = 'track-wrap';
 
+  // --- 左側：電光掲示板（縦5段） ---
+  const boardSide = document.createElement('div');
+  boardSide.className = 'board-side';
+  boardSide.innerHTML = `<div class="board-side-title" id="board-title">確定</div>`;
+  trackWrap.appendChild(boardSide);
+  renderBoardCardsInitial(boardSide);
+
+  // --- 右側：レーン（馬群が右から左へ走る） ---
+  const lanesSide = document.createElement('div');
+  lanesSide.className = 'lanes-side';
+  lanesSide.id = 'lanes-side';
+
   const goalLine = document.createElement('div');
   goalLine.className = 'goal-line';
-  trackWrap.appendChild(goalLine);
+  lanesSide.appendChild(goalLine);
   const goalLabel = document.createElement('div');
   goalLabel.className = 'goal-label';
   goalLabel.textContent = 'GOAL';
-  trackWrap.appendChild(goalLabel);
+  lanesSide.appendChild(goalLabel);
 
-  // 予想順位が下位の馬ほど上に表示（馬番1〜の並びより、見やすさ優先で
-  // 元の馬番順に並べる：実際のゲート番号順で表示する）
+  // 実際のゲート番号順（馬番順）にレーンを並べる
   const byNum = [...state.horses].sort((a, b) => a.num - b.num);
   byNum.forEach(h => {
     const lane = document.createElement('div');
     lane.className = 'lane';
     const runner = document.createElement('div');
-    runner.className = `horse-runner runner-mark-${h.markCls || ''}`;
+    runner.className = 'horse-runner';
     runner.id = `runner-${h.num}`;
-    runner.innerHTML = `<span class="num-tag">${h.num}</span>🐎`;
+    runner.innerHTML = `<span class="horse-ico">🐎</span><span class="num-tag">${h.num}</span>`;
     lane.appendChild(runner);
-    trackWrap.appendChild(lane);
+    lanesSide.appendChild(lane);
   });
 
+  trackWrap.appendChild(lanesSide);
   body.appendChild(trackWrap);
 
-  // ===== レース操作 =====
+  // ===== ②操作パネル（速度・スタート・リセット・戻る） =====
   const controls = document.createElement('div');
   controls.className = 'race-controls';
 
@@ -846,16 +872,15 @@ function renderRaceScreen() {
   backBtn.addEventListener('click', () => { clearTimeout(raceAnimTimer); showInputScreen(); });
   controls.appendChild(backBtn);
 
+  const showResultBtn = document.createElement('button');
+  showResultBtn.className = 'btn-secondary';
+  showResultBtn.textContent = '📋 全馬予想結果を見る';
+  showResultBtn.addEventListener('click', showFullResultTable);
+  controls.appendChild(showResultBtn);
+
   body.appendChild(controls);
 
-  // ===== 電光掲示板（最初は非表示） =====
-  const boardWrap = document.createElement('div');
-  boardWrap.className = 'board-wrap';
-  boardWrap.id = 'board-wrap';
-  boardWrap.innerHTML = `<div class="board-title">確　定</div><div class="board-rows" id="board-rows"></div>`;
-  body.appendChild(boardWrap);
-
-  // ===== 全馬結果表（最初は非表示） =====
+  // ===== ③全馬予想結果表（最初は非表示） =====
   const resultWrap = document.createElement('div');
   resultWrap.className = 'result-table-wrap';
   resultWrap.id = 'result-table-wrap';
@@ -867,35 +892,41 @@ function startRaceAnimation() {
   startBtn.disabled = true;
   startBtn.textContent = '走行中...';
 
-  const trackWrap = document.getElementById('track-wrap');
-  const trackWidth = trackWrap.clientWidth;
-  const goalPct = 88; // %
-  const finishPx = trackWidth * (goalPct / 100) - 26; // 馬アイコン分のオフセット
+  const lanesSide = document.getElementById('lanes-side');
+  const lanesWidth = lanesSide.clientWidth;
+  const goalLinePx = 6; // CSSのgoal-line: left:6px と一致させる
+  // ゴールまでの距離（右端=right:0 から、ゴール位置までの right値）
+  const finishRightPx = lanesWidth - goalLinePx - 26;
 
-  // 予想順位に応じて到着タイムをずらす（1位が最速、僅差で競る演出）
-  const baseDuration = (6 - raceSpeed) * 1.1 + 1.6; // 速度1なら遅い、5なら速い
+  // 速度が大きいほど速い（遅くしたいのでベース秒数を増やす）
+  const baseDuration = (6 - raceSpeed) * 1.6 + 2.4;
 
+  // 着順による到着タイム差をはっきりつける演出。
+  // 上位馬同士でも視認できる差をつけつつ、下位ほどさらに差が開く。
+  // rank=1で delay=0、最下位で約 +8秒
+  const n = state.horses.length;
+  const maxSpread = 8;
   state.horses.forEach(h => {
     const runner = document.getElementById(`runner-${h.num}`);
     if (!runner) return;
-    // 着順が下がるほど少しタイムが遅くなる（最大+0.9秒）
-    const delay = (h.predictedRank - 1) * (0.9 / state.horses.length);
+    const t = (h.predictedRank - 1) / Math.max(n - 1, 1); // 0〜1
+    // 線形成分（最低限の差を保証）＋ 加速成分（下位ほど差が開く）を半々で合成
+    const delay = (t * 0.5 + Math.pow(t, 1.4) * 0.5) * maxSpread;
     const duration = baseDuration + delay;
     runner.style.transitionDuration = duration + 's';
     runner.style.transitionTimingFunction = 'cubic-bezier(.2,.7,.4,1)';
   });
 
-  // わずかにラグを入れてから一斉スタート
   requestAnimationFrame(() => {
     setTimeout(() => {
       state.horses.forEach(h => {
         const runner = document.getElementById(`runner-${h.num}`);
-        if (runner) runner.style.left = finishPx + 'px';
+        if (runner) runner.style.right = finishRightPx + 'px';
       });
     }, 80);
   });
 
-  const totalWait = (baseDuration + 1.2) * 1000;
+  const totalWait = (baseDuration + maxSpread + 0.6) * 1000;
   raceAnimTimer = setTimeout(() => {
     startBtn.textContent = '✓ 到着';
     showElectronicBoard();
@@ -903,61 +934,59 @@ function startRaceAnimation() {
 }
 
 // ============================================================
-//  電光掲示板演出：馬番が点滅 → 確定（点灯）→ 馬名・騎手表示
+//  点滅掲示板演出：印・馬番が点滅 → 確定（点灯）
+//  上位5頭（◎○▲△☆）のみ、横並びカード表示
 // ============================================================
-function showElectronicBoard() {
-  const boardWrap = document.getElementById('board-wrap');
-  const boardRows = document.getElementById('board-rows');
-  boardRows.innerHTML = '';
-  boardWrap.classList.add('show');
+
+// レース開始前：印のみ表示し、馬番欄は空（消灯）のカードを縦に並べて描画する
+function renderBoardCardsInitial(boardSide) {
+  if (!boardSide) return;
 
   const top5 = state.horses.slice(0, 5);
+  top5.forEach(h => {
+    const card = document.createElement('div');
+    card.className = 'board-card';
 
-  top5.forEach((h, i) => {
-    const row = document.createElement('div');
-    row.className = 'board-row';
+    const markLabel = document.createElement('div');
+    markLabel.className = `board-card-mark mark-${h.markCls}`;
+    markLabel.textContent = h.mark;
 
-    const rankLabel = document.createElement('div');
-    rankLabel.className = 'board-rank-label';
-    rankLabel.textContent = (i + 1) + '着';
+    const digit = document.createElement('div');
+    digit.className = 'lamp-digit';
+    digit.id = `board-digit-${h.num}`;
+    digit.textContent = '';
 
-    const lampCell = document.createElement('div');
-    lampCell.className = 'board-lamp-cell';
-    const numStr = String(h.num);
-    const digits = [];
-    for (const ch of numStr) {
-      const digit = document.createElement('div');
-      digit.className = 'lamp-digit';
-      digit.textContent = ch;
-      digits.push(digit);
-      lampCell.appendChild(digit);
-    }
+    card.appendChild(markLabel);
+    card.appendChild(digit);
+    boardSide.appendChild(card);
+  });
+}
 
-    const nameLabel = document.createElement('div');
-    nameLabel.className = 'board-row-name';
-    nameLabel.innerHTML = `<span class="mark-tag mark-${h.markCls}">${h.mark}</span> ${h.name}`;
+// レース到着後：各カードの馬番欄に番号を表示し、点滅→点灯させる
+// 点灯完了と同時に、トラック上の馬番色・「確定」タイトルを表示する
+function showElectronicBoard() {
+  const top5 = state.horses.slice(0, 5);
 
-    const jockeyLabel = document.createElement('div');
-    jockeyLabel.className = 'board-row-jockey';
-    jockeyLabel.textContent = h.jockey;
+  const digits = top5.map((h, i) => {
+    const digit = document.getElementById(`board-digit-${h.num}`);
+    if (digit) digit.textContent = String(h.num);
+    return { digit, h };
+  }).filter(d => d.digit);
 
-    row.appendChild(rankLabel);
-    row.appendChild(lampCell);
-    row.appendChild(nameLabel);
-    row.appendChild(jockeyLabel);
-    boardRows.appendChild(row);
-
-    // 点滅 → 点灯のシーケンス（着順が下がるほど少し遅れて確定）
-    const baseDelay = i * 600;
-    flashThenLight(digits, baseDelay, () => {
-      nameLabel.classList.add('show');
-      jockeyLabel.classList.add('show');
+  // 5枚同時に点滅→ほぼ同時に確定（僅かに着順差をつける）
+  digits.forEach((d, i) => {
+    flashThenLight([d.digit], i * 250, () => {
+      // この馬の確定タイミングで、トラック上の馬番にも印カラーを反映する
+      const runner = document.getElementById(`runner-${d.h.num}`);
+      if (runner) runner.classList.add(`runner-mark-${d.h.markCls}`);
     });
   });
 
-  // 全馬結果表は最後の馬の確定後に表示
-  const totalDelay = top5.length * 600 + 1800;
-  setTimeout(showFullResultTable, totalDelay);
+  const totalDelay = digits.length * 250 + 1300;
+  setTimeout(() => {
+    const title = document.getElementById('board-title');
+    if (title) title.style.visibility = 'visible';
+  }, totalDelay);
 }
 
 function flashThenLight(digitEls, baseDelay, onLit) {
