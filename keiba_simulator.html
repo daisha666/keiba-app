@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>競馬予想シミュレーター</title>
+<style>
+:root{
+  --turf:#0f2818;
+  --turf-light:#163a22;
+  --rail:#e8e2c8;
+  --gold:#f0c84a;
+  --gold-dim:#8a6f1f;
+  --board-bg:#04140c;
+  --board-lamp-off:#13301f;
+  --board-lamp-on:#2ecbff;
+  --board-lamp-glow:#7fe3ff;
+  --text:#eef3e8;
+  --muted:#7fa385;
+  --border:#1f3a28;
+  --honmei:#ff5a5a;
+  --taikou:#5aaaee;
+  --tan:#4adf80;
+  --renpuku:#9ab09a;
+  --hoshi:#f5c842;
+}
+*{box-sizing:border-box;}
+html,body{
+  margin:0;padding:0;
+  background:var(--board-bg);
+  color:var(--text);
+  font-family:'Noto Sans JP',-apple-system,sans-serif;
+  height:100%;
+  overflow-x:hidden;
+}
+#app{
+  max-width:520px;
+  margin:0 auto;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ===== HEADER ===== */
+header{
+  padding:18px 16px 10px;
+  text-align:center;
+  border-bottom:1px solid var(--border);
+}
+header h1{
+  margin:0;
+  font-size:1.3rem;
+  font-weight:900;
+  color:var(--gold);
+  letter-spacing:.02em;
+}
+header h1 .ico{margin-right:6px;}
+header .sub{
+  font-size:.6rem;
+  letter-spacing:.18em;
+  color:var(--muted);
+  margin-top:3px;
+}
+nav.tabs{
+  display:flex;
+  gap:6px;
+  padding:10px 14px 0;
+}
+nav.tabs button{
+  flex:1;
+  background:#0a1f13;
+  border:1px solid var(--border);
+  color:var(--muted);
+  font-family:inherit;
+  font-size:.72rem;
+  font-weight:700;
+  padding:10px 4px;
+  border-radius:8px 8px 0 0;
+  cursor:pointer;
+}
+nav.tabs button.active{
+  background:var(--turf-light);
+  color:var(--gold);
+  border-color:var(--gold-dim);
+}
+
+main{flex:1;padding:14px;padding-bottom:40px;}
+
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ===== INPUT SCREEN ===== */
+.field-group{margin-bottom:16px;}
+.field-label{
+  font-size:.72rem;
+  color:var(--muted);
+  margin-bottom:6px;
+  font-weight:700;
+}
+.num-input{
+  width:100%;
+  background:#0a1f13;
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:inherit;
+  font-size:1rem;
+  padding:10px 12px;
+}
+.venue-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+}
+.venue-btn{
+  background:#0a1f13;
+  border:1px solid var(--border);
+  color:var(--text);
+  font-family:inherit;
+  font-size:.78rem;
+  font-weight:700;
+  padding:10px 4px;
+  border-radius:8px;
+  cursor:pointer;
+}
+.venue-btn.active{
+  background:var(--gold);
+  color:#1a1408;
+  border-color:var(--gold);
+}
+.inline-row{display:flex;gap:8px;align-items:center;}
+.inline-row .num-input{flex:1;}
+select.num-input{appearance:none;}
+
+textarea.paste-area{
+  width:100%;
+  min-height:130px;
+  background:#0a1f13;
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:'Courier New',monospace;
+  font-size:.7rem;
+  padding:10px;
+  resize:vertical;
+  white-space:pre;
+}
+.hint{
+  font-size:.62rem;
+  color:var(--muted);
+  line-height:1.6;
+  margin-top:6px;
+}
+
+.btn-primary{
+  width:100%;
+  background:linear-gradient(135deg,var(--gold),#c89820);
+  border:none;
+  color:#1a1408;
+  font-family:inherit;
+  font-size:1rem;
+  font-weight:900;
+  padding:14px;
+  border-radius:10px;
+  cursor:pointer;
+  margin-top:6px;
+}
+.btn-secondary{
+  width:100%;
+  background:#0a1f13;
+  border:1px solid var(--border);
+  color:var(--muted);
+  font-family:inherit;
+  font-size:.8rem;
+  font-weight:700;
+  padding:11px;
+  border-radius:8px;
+  cursor:pointer;
+  margin-top:8px;
+}
+
+.error-box{
+  padding:12px 14px;
+  border:1px solid #6a2a2a;
+  background:#1a0c0c;
+  border-radius:8px;
+  font-size:.75rem;
+  color:#f0a0a0;
+  line-height:1.7;
+  margin-top:10px;
+}
+
+/* ===== RACE TRACK (simulation) ===== */
+#race-screen{padding:0;}
+.track-wrap{
+  background:linear-gradient(180deg,var(--turf) 0%,var(--turf-light) 100%);
+  border-bottom:2px solid var(--rail);
+  padding:10px 0;
+  position:relative;
+  overflow:hidden;
+}
+.race-meta-bar{
+  padding:8px 16px;
+  font-size:.68rem;
+  color:var(--muted);
+  text-align:center;
+  border-bottom:1px solid var(--border);
+}
+.lane{
+  position:relative;
+  height:30px;
+  border-bottom:1px dashed rgba(255,255,255,.06);
+}
+.lane:last-child{border-bottom:none;}
+.goal-line{
+  position:absolute;
+  top:0;bottom:0;
+  left:88%;
+  width:0;
+  border-left:3px dashed var(--honmei);
+  z-index:5;
+}
+.goal-label{
+  position:absolute;
+  top:2px;
+  left:88%;
+  transform:translateX(4px);
+  font-size:.55rem;
+  font-weight:900;
+  color:var(--honmei);
+  letter-spacing:.05em;
+  z-index:5;
+}
+.horse-runner{
+  position:absolute;
+  top:2px;
+  left:0;
+  display:flex;
+  align-items:center;
+  gap:3px;
+  font-size:.85rem;
+  white-space:nowrap;
+  transition:left linear;
+  z-index:3;
+}
+.horse-runner .num-tag{
+  font-size:.58rem;
+  font-weight:900;
+  padding:1px 4px;
+  border-radius:4px;
+  background:#222;
+  color:#fff;
+  border:1px solid rgba(255,255,255,.2);
+}
+.runner-mark-honmei .num-tag{background:var(--honmei);color:#fff;}
+.runner-mark-taikou .num-tag{background:var(--taikou);color:#fff;}
+.runner-mark-tan .num-tag{background:var(--tan);color:#04140c;}
+.runner-mark-renpuku .num-tag{background:var(--renpuku);color:#04140c;}
+.runner-mark-hoshi .num-tag{background:var(--hoshi);color:#1a1408;}
+
+.race-controls{
+  padding:14px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.speed-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:.75rem;
+  color:var(--muted);
+}
+.speed-row input[type=range]{flex:1;}
+.speed-row .val{
+  color:var(--gold);
+  font-weight:900;
+  width:18px;
+  text-align:center;
+}
+
+/* ===== ELECTRONIC BOARD (keijiban) ===== */
+.board-wrap{
+  background:var(--board-bg);
+  border:2px solid #143020;
+  border-radius:6px;
+  margin:14px 16px 0;
+  padding:14px 10px;
+  display:none;
+}
+.board-wrap.show{display:block;}
+.board-title{
+  text-align:center;
+  font-size:.7rem;
+  color:var(--gold);
+  font-weight:900;
+  letter-spacing:.15em;
+  margin-bottom:10px;
+}
+.board-rows{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.board-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.board-rank-label{
+  width:34px;
+  font-size:.85rem;
+  font-weight:900;
+  color:var(--muted);
+  text-align:center;
+}
+.board-lamp-cell{
+  display:flex;
+  gap:4px;
+}
+.lamp-digit{
+  width:30px;
+  height:42px;
+  background:var(--board-lamp-off);
+  border:1px solid #1c4530;
+  border-radius:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.3rem;
+  font-weight:900;
+  font-family:'Courier New',monospace;
+  color:transparent;
+  transition:color .15s, background .15s, box-shadow .15s;
+}
+.lamp-digit.flash{
+  color:var(--board-lamp-on);
+  background:#0d3a26;
+}
+.lamp-digit.lit{
+  color:var(--board-lamp-on);
+  background:#0d3a26;
+  box-shadow:0 0 10px var(--board-lamp-glow), 0 0 2px var(--board-lamp-glow) inset;
+}
+.board-row-name{
+  font-size:.72rem;
+  color:var(--text);
+  flex:1;
+  opacity:0;
+  transition:opacity .3s;
+}
+.board-row-name.show{opacity:1;}
+.board-row-jockey{
+  font-size:.6rem;
+  color:var(--muted);
+  opacity:0;
+  transition:opacity .3s;
+}
+.board-row-jockey.show{opacity:1;}
+
+/* ===== RESULT TABLE (full ranking) ===== */
+.result-table-wrap{
+  margin-top:18px;
+  display:none;
+}
+.result-table-wrap.show{display:block;}
+.section-title{
+  font-size:.85rem;
+  font-weight:900;
+  color:var(--gold);
+  margin:0 0 10px;
+  padding-left:2px;
+}
+table.full-result{
+  width:100%;
+  border-collapse:collapse;
+  font-size:.68rem;
+}
+table.full-result th{
+  background:#0a1f13;
+  color:var(--muted);
+  font-weight:700;
+  padding:6px 4px;
+  border-bottom:1px solid var(--border);
+  text-align:center;
+  position:sticky;
+  top:0;
+}
+table.full-result td{
+  padding:7px 4px;
+  text-align:center;
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+table.full-result td.td-name{text-align:left;font-weight:700;}
+table.full-result tr.row-top3 td{background:rgba(240,200,74,.06);}
+
+.mark-tag{font-weight:900;}
+.mark-honmei{color:var(--honmei);}
+.mark-taikou{color:var(--taikou);}
+.mark-tan{color:var(--tan);}
+.mark-renpuku{color:var(--renpuku);}
+.mark-hoshi{color:var(--hoshi);}
+
+.bottom-actions{
+  display:flex;
+  gap:8px;
+  margin-top:18px;
+}
+.bottom-actions button{flex:1;}
+
+footer.app-footer{
+  text-align:center;
+  font-size:.6rem;
+  color:var(--muted);
+  padding:16px 0 30px;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1><span class="ico">🐎</span>競馬予想シミュレーター</h1>
+    <div class="sub">RACE RESULT VISUALIZER</div>
+  </header>
+
+  <main>
+
+    <!-- ===== INPUT SCREEN ===== -->
+    <div class="screen active" id="screen-input">
+      <div id="input-body"></div>
+    </div>
+
+    <!-- ===== RACE SCREEN ===== -->
+    <div class="screen" id="screen-race">
+      <div id="race-body"></div>
+    </div>
+
+  </main>
+
+  <footer class="app-footer">予想データをもとにしたエンタメ用シミュレーションです</footer>
+</div>
+
+<script>
+/* condition_master データをここに埋め込む */
+const CONDITION_MASTER = {"東京芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"東京芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"東京芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"東京芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"東京芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"東京芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"東京芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"東京芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"東京芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"東京芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"東京芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"東京芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"東京芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"東京芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"東京芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"東京芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"東京芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"東京芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"東京ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"東京ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"東京ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"東京ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"東京ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"東京ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"東京ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"東京ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"東京ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"東京ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"東京ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"東京ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"東京ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"東京ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"東京ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"東京ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"東京ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"東京ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中山芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"中山芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"中山芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"中山芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"中山芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"中山芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"中山芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"中山芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"中山芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"中山芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"中山芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"中山芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"中山芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"中山芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"中山芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"中山芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"中山芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"中山芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"中山ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"中山ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"中山ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"中山ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"中山ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"中山ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"中山ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"中山ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"中山ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"中山ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"中山ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"中山ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"中山ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"中山ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中山ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中山ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中山ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中山ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"阪神芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"阪神芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"阪神芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"阪神芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"阪神芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"阪神芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"阪神芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"阪神芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"阪神芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"阪神芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"阪神芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"阪神芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"阪神芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"阪神芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"阪神芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"阪神芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"阪神芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"阪神芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"阪神ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"阪神ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"阪神ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"阪神ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"阪神ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"阪神ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"阪神ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"阪神ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"阪神ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"阪神ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"阪神ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"阪神ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"阪神ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"阪神ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"阪神ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"阪神ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"阪神ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"阪神ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"京都芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"京都芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"京都芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"京都芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"京都芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"京都芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"京都芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"京都芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"京都芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"京都芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"京都芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"京都芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"京都芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"京都芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"京都芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"京都芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"京都芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"京都芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"京都ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"京都ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"京都ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"京都ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"京都ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"京都ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"京都ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"京都ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"京都ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"京都ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"京都ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"京都ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"京都ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"京都ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"京都ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"京都ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"京都ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"京都ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中京芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"中京芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"中京芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"中京芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"中京芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"中京芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"中京芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"中京芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"中京芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"中京芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"中京芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"中京芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"中京芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"中京芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"中京芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"中京芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"中京芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"中京芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"中京ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"中京ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"中京ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"中京ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"中京ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"中京ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"中京ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"中京ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"中京ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"中京ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"中京ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"中京ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"中京ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"中京ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中京ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中京ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中京ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"中京ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"新潟芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"新潟芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"新潟芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"新潟芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"新潟芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"新潟芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"新潟芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"新潟芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"新潟芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"新潟芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"新潟芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"新潟芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"新潟芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"新潟芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"新潟芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"新潟芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"新潟芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"新潟芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"新潟ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"新潟ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"新潟ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"新潟ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"新潟ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"新潟ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"新潟ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"新潟ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"新潟ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"新潟ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"新潟ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"新潟ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"新潟ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"新潟ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"新潟ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"新潟ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"新潟ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"新潟ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"福島芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"福島芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"福島芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"福島芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"福島芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"福島芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"福島芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"福島芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"福島芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"福島芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"福島芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"福島芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"福島芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"福島芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"福島芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"福島芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"福島芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"福島芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"福島ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"福島ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"福島ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"福島ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"福島ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"福島ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"福島ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"福島ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"福島ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"福島ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"福島ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"福島ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"福島ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"福島ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"福島ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"福島ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"福島ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"福島ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"小倉芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"小倉芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"小倉芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"小倉芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"小倉芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"小倉芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"小倉芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"小倉芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"小倉芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"小倉芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"小倉芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"小倉芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"小倉芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"小倉芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"小倉芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"小倉芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"小倉芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"小倉芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"小倉ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"小倉ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"小倉ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"小倉ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"小倉ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"小倉ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"小倉ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"小倉ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"小倉ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"小倉ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"小倉ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"小倉ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"小倉ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"小倉ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"小倉ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"小倉ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"小倉ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"小倉ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"札幌芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"札幌芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"札幌芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"札幌芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"札幌芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"札幌芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"札幌芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"札幌芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"札幌芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"札幌芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"札幌芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"札幌芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"札幌芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"札幌芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"札幌芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"札幌芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"札幌芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"札幌芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"札幌ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"札幌ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"札幌ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"札幌ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"札幌ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"札幌ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"札幌ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"札幌ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"札幌ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"札幌ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"札幌ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"札幌ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"札幌ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"札幌ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"札幌ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"札幌ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"札幌ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"札幌ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"函館芝1000":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"函館芝1150":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"函館芝1200":{"agari":25,"sashi":15,"senko":30,"nige":20,"oikomi":10,"kishu":20,"kyori":15,"mawari":15,"antei":10,"ketto":5,"chokyoshi":5},"函館芝1300":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"函館芝1400":{"agari":30,"sashi":20,"senko":20,"nige":10,"oikomi":15,"kishu":25,"kyori":15,"mawari":15,"antei":10,"ketto":6,"chokyoshi":6},"函館芝1500":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"函館芝1600":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"函館芝1700":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"函館芝1800":{"agari":35,"sashi":25,"senko":20,"nige":10,"oikomi":10,"kishu":25,"kyori":20,"mawari":20,"antei":10,"ketto":8,"chokyoshi":6},"函館芝1900":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"函館芝2000":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"函館芝2100":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"函館芝2200":{"agari":30,"sashi":20,"senko":25,"nige":10,"oikomi":10,"kishu":25,"kyori":22,"mawari":20,"antei":15,"ketto":10,"chokyoshi":8},"函館芝2400":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"函館芝2500":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"函館芝2600":{"agari":28,"sashi":20,"senko":25,"nige":10,"oikomi":15,"kishu":25,"kyori":25,"mawari":20,"antei":15,"ketto":12,"chokyoshi":9},"函館芝3000":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"函館芝3200":{"agari":20,"sashi":18,"senko":20,"nige":5,"oikomi":25,"kishu":18,"kyori":35,"mawari":20,"antei":25,"ketto":15,"chokyoshi":10},"函館ダ1000":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"函館ダ1150":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"函館ダ1200":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"函館ダ1300":{"agari":10,"sashi":5,"senko":35,"nige":35,"oikomi":5,"kishu":15,"kyori":20,"mawari":15,"antei":10,"ketto":3,"chokyoshi":5},"函館ダ1400":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"函館ダ1500":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"函館ダ1600":{"agari":15,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":10,"ketto":4,"chokyoshi":6},"函館ダ1700":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"函館ダ1800":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"函館ダ1900":{"agari":20,"sashi":10,"senko":30,"nige":25,"oikomi":10,"kishu":20,"kyori":20,"mawari":15,"antei":15,"ketto":6,"chokyoshi":7},"函館ダ2000":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"函館ダ2100":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"函館ダ2200":{"agari":18,"sashi":12,"senko":28,"nige":22,"oikomi":10,"kishu":20,"kyori":25,"mawari":15,"antei":15,"ketto":7,"chokyoshi":8},"函館ダ2400":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"函館ダ2500":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"函館ダ2600":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"函館ダ3000":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9},"函館ダ3200":{"agari":15,"sashi":15,"senko":25,"nige":10,"oikomi":20,"kishu":18,"kyori":35,"mawari":15,"antei":20,"ketto":8,"chokyoshi":9}};
+</script>
+<script>
+// ============================================================
+//  共通ヘルパー（既存アプリ keiba_app2.html と同じロジック）
+// ============================================================
+function normalize(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .trim()
+    .replace(/[\uFF10-\uFF19]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[\s\u3000\u2028\u2029\r\n\t]+/g, '');
+}
+
+function parsePercent(val) {
+  if (val === null || val === undefined || val === '') return null;
+  if (typeof val === 'number') return val <= 1 ? val * 100 : val;
+  const s = String(val).replace('%', '').trim();
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+function minmax(arr) {
+  const valid = arr.filter(v => v !== null && !isNaN(v));
+  if (valid.length === 0) return { min: 0, max: 0 };
+  return { min: Math.min(...valid), max: Math.max(...valid) };
+}
+function relScore(value, mn, mx, weight) {
+  if (value === null || isNaN(value)) return 0;
+  let norm;
+  if (mx === mn) norm = 50;
+  else norm = (value - mn) / (mx - mn) * 100;
+  return norm * weight / 100;
+}
+function relScoreInv(value, mn, mx, weight) {
+  if (value === null || isNaN(value)) return 0;
+  let norm;
+  if (mx === mn) norm = 50;
+  else norm = (mx - value) / (mx - mn) * 100;
+  return norm * weight / 100;
+}
+
+const STYLE_WEIGHT_KEY = { '差し':'sashi', '先行':'senko', '逃げ':'nige', '追込':'oikomi' };
+const MARKS = [
+  { mark:'◎', cls:'honmei' },
+  { mark:'○', cls:'taikou' },
+  { mark:'▲', cls:'tan' },
+  { mark:'△', cls:'renpuku' },
+  { mark:'☆', cls:'hoshi' },
+];
+
+function getWeights(venue, surface, distance) {
+  const defaultWeights = {
+    agari:20, sashi:18, senko:18, nige:8, oikomi:8,
+    kishu:15, kyori:15, mawari:12, antei:10, ketto:5, chokyoshi:5,
+  };
+  const exactKey = `${venue}${surface}${distance}`;
+  if (CONDITION_MASTER[exactKey]) return CONDITION_MASTER[exactKey];
+
+  // フォールバック：同競馬場・同芝ダで距離が近いキーを探す
+  const prefix = `${venue}${surface}`;
+  let best = null, bestDiff = Infinity;
+  Object.keys(CONDITION_MASTER).forEach(key => {
+    if (key.indexOf(prefix) === 0) {
+      const m = key.match(/(\d+)$/);
+      if (m) {
+        const d = Math.abs(Number(m[1]) - distance);
+        if (d < bestDiff) { bestDiff = d; best = key; }
+      }
+    }
+  });
+  return best ? CONDITION_MASTER[best] : defaultWeights;
+}
+
+// ============================================================
+//  貼り付けデータのパース
+//  期待する列順（既存アプリのスプレッドシートと同じ）:
+//  馬番,馬名,騎手,斤量,馬齢,種牡馬,母父,全成績連対率,種牡馬複勝率,
+//  騎手複勝率,調教師複勝率,競馬場複勝率,距離複勝率,回り複勝率,
+//  脚質,平均着順(過去5戦),平均3F(過去5戦),オッズ
+// ============================================================
+function parsePastedData(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length === 0) return { horses: [], error: 'データが入力されていません' };
+
+  const rows = lines.map(l => l.split('\t'));
+
+  // ヘッダー行らしき行（「馬番」を含む）は除外
+  const dataRows = rows.filter(r => normalize(r[0]) !== '馬番' && normalize(r[0]) !== '');
+
+  if (dataRows.length === 0) return { horses: [], error: '有効なデータ行が見つかりません' };
+
+  const horses = [];
+  dataRows.forEach((r, i) => {
+    const num = Number(r[0]);
+    if (!num) return;
+    const name = String(r[1] || '').trim();
+    if (!name) return;
+
+    horses.push({
+      num: num,
+      name: name,
+      jockey: String(r[2] || '').trim(),
+      weight: Number(r[3]) || 0,
+      age: String(r[4] || '').trim(),
+      sire: String(r[5] || '').trim(),
+      damsire: String(r[6] || '').trim(),
+      renso: parsePercent(r[7]),
+      sireWin: parsePercent(r[8]),
+      kishi: parsePercent(r[9]),
+      chokyoshi: parsePercent(r[10]),
+      keibajo: parsePercent(r[11]),
+      kyori: parsePercent(r[12]),
+      mawari: parsePercent(r[13]),
+      style: String(r[14] || '').trim(),
+      avgRank: (r[15] !== undefined && r[15] !== '') ? Number(r[15]) : null,
+      avg3f: (r[16] !== undefined && r[16] !== '') ? Number(r[16]) : null,
+      odds: (r[17] !== undefined && r[17] !== '') ? Number(r[17]) : null,
+    });
+  });
+
+  if (horses.length === 0) return { horses: [], error: '馬データを認識できませんでした。列の順番を確認してください。' };
+
+  return { horses, error: null };
+}
+
+// ============================================================
+//  スコア計算（既存アプリ keiba_app2.html の scoreHorses と同一ロジック）
+// ============================================================
+function scoreHorses(horses, weights) {
+  const mmAvg3f     = minmax(horses.map(h => h.avg3f));
+  const mmKishi     = minmax(horses.map(h => h.kishi));
+  const mmKyori     = minmax(horses.map(h => h.kyori));
+  const mmMawari    = minmax(horses.map(h => h.mawari));
+  const mmRenso     = minmax(horses.map(h => h.renso));
+  const mmSireWin   = minmax(horses.map(h => h.sireWin));
+  const mmChokyoshi = minmax(horses.map(h => h.chokyoshi));
+
+  const scored = horses.map(h => {
+    const agari = relScoreInv(h.avg3f, mmAvg3f.min, mmAvg3f.max, weights.agari || 0);
+    const styleKey = STYLE_WEIGHT_KEY[h.style];
+    const kyakushitsu = styleKey ? (weights[styleKey] || 0) : 0;
+    const kishu = relScore(h.kishi, mmKishi.min, mmKishi.max, weights.kishu || 0);
+    const kyori = relScore(h.kyori, mmKyori.min, mmKyori.max, weights.kyori || 0);
+    const mawari = relScore(h.mawari, mmMawari.min, mmMawari.max, weights.mawari || 0);
+    const antei = relScore(h.renso, mmRenso.min, mmRenso.max, weights.antei || 0);
+    const ketto = relScore(h.sireWin, mmSireWin.min, mmSireWin.max, weights.ketto || 0);
+    const chokyoshi = relScore(h.chokyoshi, mmChokyoshi.min, mmChokyoshi.max, weights.chokyoshi || 0);
+
+    const total = agari + kyakushitsu + kishu + kyori + mawari + antei + ketto + chokyoshi;
+    return { ...h, total: Math.round(total * 10) / 10 };
+  });
+
+  scored.sort((a, b) => b.total - a.total);
+  scored.forEach((h, i) => {
+    h.predictedRank = i + 1;
+    h.mark = MARKS[i] ? MARKS[i].mark : '';
+    h.markCls = MARKS[i] ? MARKS[i].cls : '';
+  });
+
+  return scored;
+}
+
+// ============================================================
+//  画面状態
+// ============================================================
+const state = {
+  venue: '東京',
+  surface: '芝',
+  distance: 1600,
+  turn: '左',
+  headcount: 16,
+  horses: [],       // スコア計算済み・predictedRank昇順
+};
+
+const VENUES = ['札幌','函館','福島','新潟','東京','中山','中京','京都','阪神','小倉'];
+
+// ============================================================
+//  入力画面のレンダリング
+// ============================================================
+function renderInputScreen() {
+  const body = document.getElementById('input-body');
+  body.innerHTML = '';
+
+  // 競馬場
+  const venueGroup = document.createElement('div');
+  venueGroup.className = 'field-group';
+  venueGroup.innerHTML = `<div class="field-label">競馬場</div>`;
+  const venueGrid = document.createElement('div');
+  venueGrid.className = 'venue-grid';
+  VENUES.forEach(v => {
+    const btn = document.createElement('button');
+    btn.className = 'venue-btn' + (state.venue === v ? ' active' : '');
+    btn.textContent = v;
+    btn.addEventListener('click', () => {
+      state.venue = v;
+      renderInputScreen();
+    });
+    venueGrid.appendChild(btn);
+  });
+  venueGroup.appendChild(venueGrid);
+  body.appendChild(venueGroup);
+
+  // 距離・回り・芝ダ
+  const condGroup = document.createElement('div');
+  condGroup.className = 'field-group';
+  condGroup.innerHTML = `<div class="field-label">距離・回り・芝ダ</div>`;
+  const condRow = document.createElement('div');
+  condRow.className = 'inline-row';
+
+  const distInput = document.createElement('input');
+  distInput.type = 'number';
+  distInput.className = 'num-input';
+  distInput.placeholder = '距離(m)';
+  distInput.value = state.distance;
+  distInput.addEventListener('input', () => { state.distance = Number(distInput.value) || 0; });
+
+  const turnSelect = document.createElement('select');
+  turnSelect.className = 'num-input';
+  ['左','右','直'].forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t + '回り';
+    if (t === state.turn) opt.selected = true;
+    turnSelect.appendChild(opt);
+  });
+  turnSelect.addEventListener('change', () => { state.turn = turnSelect.value; });
+
+  const surfaceSelect = document.createElement('select');
+  surfaceSelect.className = 'num-input';
+  ['芝','ダ'].forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s; opt.textContent = s;
+    if (s === state.surface) opt.selected = true;
+    surfaceSelect.appendChild(opt);
+  });
+  surfaceSelect.addEventListener('change', () => { state.surface = surfaceSelect.value; });
+
+  condRow.appendChild(distInput);
+  condRow.appendChild(turnSelect);
+  condRow.appendChild(surfaceSelect);
+  condGroup.appendChild(condRow);
+  body.appendChild(condGroup);
+
+  // 出走頭数
+  const headGroup = document.createElement('div');
+  headGroup.className = 'field-group';
+  headGroup.innerHTML = `<div class="field-label">出走頭数</div>`;
+  const headInput = document.createElement('input');
+  headInput.type = 'number';
+  headInput.className = 'num-input';
+  headInput.min = 2; headInput.max = 18;
+  headInput.value = state.headcount;
+  headInput.addEventListener('input', () => { state.headcount = Number(headInput.value) || 0; });
+  headGroup.appendChild(headInput);
+  body.appendChild(headGroup);
+
+  // データ貼り付け
+  const pasteGroup = document.createElement('div');
+  pasteGroup.className = 'field-group';
+  pasteGroup.innerHTML = `<div class="field-label">出走馬データ貼り付け</div>`;
+  const textarea = document.createElement('textarea');
+  textarea.className = 'paste-area';
+  textarea.id = 'paste-textarea';
+  textarea.placeholder = '馬番　馬名　騎手　斤量　馬齢　種牡馬　母父　全成績連対率　種牡馬複勝率　騎手複勝率　調教師複勝率　競馬場複勝率　距離複勝率　回り複勝率　脚質　平均着順(過去5戦)　平均3F(過去5戦)　オッズ\n\nスプレッドシートの該当範囲を選択してコピー（Ctrl+C）し、ここに貼り付け（Ctrl+V）してください。';
+  pasteGroup.appendChild(textarea);
+  const hint = document.createElement('div');
+  hint.className = 'hint';
+  hint.textContent = '※ スプレッドシートで馬番〜オッズまでの列を選択 → コピー → ここに貼り付け　※ ヘッダー行（馬番・馬名…）は含めても含めなくてもOK';
+  pasteGroup.appendChild(hint);
+  body.appendChild(pasteGroup);
+
+  // 計算ボタン
+  const calcBtn = document.createElement('button');
+  calcBtn.className = 'btn-primary';
+  calcBtn.textContent = '▶ 予想を計算してシミュレーション準備';
+  calcBtn.addEventListener('click', onCalcClick);
+  body.appendChild(calcBtn);
+
+  const errorArea = document.createElement('div');
+  errorArea.id = 'input-error';
+  body.appendChild(errorArea);
+}
+
+function onCalcClick() {
+  const text = document.getElementById('paste-textarea').value;
+  const { horses, error } = parsePastedData(text);
+  const errorArea = document.getElementById('input-error');
+  errorArea.innerHTML = '';
+
+  if (error) {
+    errorArea.innerHTML = `<div class="error-box">⚠ ${error}</div>`;
+    return;
+  }
+
+  if (state.headcount && horses.length !== state.headcount) {
+    errorArea.innerHTML = `<div class="error-box">⚠ 入力された出走頭数（${state.headcount}頭）と、データの馬数（${horses.length}頭）が一致しません。出走頭数を直すか、データを確認してください。</div>`;
+    return;
+  }
+
+  const weights = getWeights(state.venue, state.surface, state.distance);
+  const scored = scoreHorses(horses, weights);
+  state.horses = scored;
+
+  showRaceScreen();
+}
+
+// ============================================================
+//  画面切り替え
+// ============================================================
+function showInputScreen() {
+  document.getElementById('screen-input').classList.add('active');
+  document.getElementById('screen-race').classList.remove('active');
+}
+function showRaceScreen() {
+  document.getElementById('screen-input').classList.remove('active');
+  document.getElementById('screen-race').classList.add('active');
+  renderRaceScreen();
+}
+
+// ============================================================
+//  レース画面（トラック描画＋電光掲示板＋全馬結果表）
+// ============================================================
+let raceAnimTimer = null;
+let raceSpeed = 3;
+
+function renderRaceScreen() {
+  const body = document.getElementById('race-body');
+  body.innerHTML = '';
+
+  const metaBar = document.createElement('div');
+  metaBar.className = 'race-meta-bar';
+  metaBar.textContent = `${state.venue} ${state.surface}${state.distance}m ${state.turn}回り　出走 ${state.horses.length}頭`;
+  body.appendChild(metaBar);
+
+  // ===== トラック =====
+  const trackWrap = document.createElement('div');
+  trackWrap.className = 'track-wrap';
+  trackWrap.id = 'track-wrap';
+
+  const goalLine = document.createElement('div');
+  goalLine.className = 'goal-line';
+  trackWrap.appendChild(goalLine);
+  const goalLabel = document.createElement('div');
+  goalLabel.className = 'goal-label';
+  goalLabel.textContent = 'GOAL';
+  trackWrap.appendChild(goalLabel);
+
+  // 予想順位が下位の馬ほど上に表示（馬番1〜の並びより、見やすさ優先で
+  // 元の馬番順に並べる：実際のゲート番号順で表示する）
+  const byNum = [...state.horses].sort((a, b) => a.num - b.num);
+  byNum.forEach(h => {
+    const lane = document.createElement('div');
+    lane.className = 'lane';
+    const runner = document.createElement('div');
+    runner.className = `horse-runner runner-mark-${h.markCls || ''}`;
+    runner.id = `runner-${h.num}`;
+    runner.innerHTML = `<span class="num-tag">${h.num}</span>🐎`;
+    lane.appendChild(runner);
+    trackWrap.appendChild(lane);
+  });
+
+  body.appendChild(trackWrap);
+
+  // ===== レース操作 =====
+  const controls = document.createElement('div');
+  controls.className = 'race-controls';
+
+  const speedRow = document.createElement('div');
+  speedRow.className = 'speed-row';
+  speedRow.innerHTML = `<span>速度</span>`;
+  const speedInput = document.createElement('input');
+  speedInput.type = 'range';
+  speedInput.min = 1; speedInput.max = 5; speedInput.value = raceSpeed;
+  const speedVal = document.createElement('span');
+  speedVal.className = 'val';
+  speedVal.textContent = raceSpeed;
+  speedInput.addEventListener('input', () => {
+    raceSpeed = Number(speedInput.value);
+    speedVal.textContent = raceSpeed;
+  });
+  speedRow.appendChild(speedInput);
+  speedRow.appendChild(speedVal);
+  controls.appendChild(speedRow);
+
+  const startBtn = document.createElement('button');
+  startBtn.className = 'btn-primary';
+  startBtn.id = 'btn-start-race';
+  startBtn.textContent = '▶ スタート';
+  startBtn.addEventListener('click', startRaceAnimation);
+  controls.appendChild(startBtn);
+
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'btn-secondary';
+  resetBtn.textContent = '↺ リセット';
+  resetBtn.addEventListener('click', () => renderRaceScreen());
+  controls.appendChild(resetBtn);
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'btn-secondary';
+  backBtn.textContent = '← データ入力に戻る';
+  backBtn.addEventListener('click', () => { clearTimeout(raceAnimTimer); showInputScreen(); });
+  controls.appendChild(backBtn);
+
+  body.appendChild(controls);
+
+  // ===== 電光掲示板（最初は非表示） =====
+  const boardWrap = document.createElement('div');
+  boardWrap.className = 'board-wrap';
+  boardWrap.id = 'board-wrap';
+  boardWrap.innerHTML = `<div class="board-title">確　定</div><div class="board-rows" id="board-rows"></div>`;
+  body.appendChild(boardWrap);
+
+  // ===== 全馬結果表（最初は非表示） =====
+  const resultWrap = document.createElement('div');
+  resultWrap.className = 'result-table-wrap';
+  resultWrap.id = 'result-table-wrap';
+  body.appendChild(resultWrap);
+}
+
+function startRaceAnimation() {
+  const startBtn = document.getElementById('btn-start-race');
+  startBtn.disabled = true;
+  startBtn.textContent = '走行中...';
+
+  const trackWrap = document.getElementById('track-wrap');
+  const trackWidth = trackWrap.clientWidth;
+  const goalPct = 88; // %
+  const finishPx = trackWidth * (goalPct / 100) - 26; // 馬アイコン分のオフセット
+
+  // 予想順位に応じて到着タイムをずらす（1位が最速、僅差で競る演出）
+  const baseDuration = (6 - raceSpeed) * 1.1 + 1.6; // 速度1なら遅い、5なら速い
+
+  state.horses.forEach(h => {
+    const runner = document.getElementById(`runner-${h.num}`);
+    if (!runner) return;
+    // 着順が下がるほど少しタイムが遅くなる（最大+0.9秒）
+    const delay = (h.predictedRank - 1) * (0.9 / state.horses.length);
+    const duration = baseDuration + delay;
+    runner.style.transitionDuration = duration + 's';
+    runner.style.transitionTimingFunction = 'cubic-bezier(.2,.7,.4,1)';
+  });
+
+  // わずかにラグを入れてから一斉スタート
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      state.horses.forEach(h => {
+        const runner = document.getElementById(`runner-${h.num}`);
+        if (runner) runner.style.left = finishPx + 'px';
+      });
+    }, 80);
+  });
+
+  const totalWait = (baseDuration + 1.2) * 1000;
+  raceAnimTimer = setTimeout(() => {
+    startBtn.textContent = '✓ 到着';
+    showElectronicBoard();
+  }, totalWait);
+}
+
+// ============================================================
+//  電光掲示板演出：馬番が点滅 → 確定（点灯）→ 馬名・騎手表示
+// ============================================================
+function showElectronicBoard() {
+  const boardWrap = document.getElementById('board-wrap');
+  const boardRows = document.getElementById('board-rows');
+  boardRows.innerHTML = '';
+  boardWrap.classList.add('show');
+
+  const top5 = state.horses.slice(0, 5);
+
+  top5.forEach((h, i) => {
+    const row = document.createElement('div');
+    row.className = 'board-row';
+
+    const rankLabel = document.createElement('div');
+    rankLabel.className = 'board-rank-label';
+    rankLabel.textContent = (i + 1) + '着';
+
+    const lampCell = document.createElement('div');
+    lampCell.className = 'board-lamp-cell';
+    const numStr = String(h.num);
+    const digits = [];
+    for (const ch of numStr) {
+      const digit = document.createElement('div');
+      digit.className = 'lamp-digit';
+      digit.textContent = ch;
+      digits.push(digit);
+      lampCell.appendChild(digit);
+    }
+
+    const nameLabel = document.createElement('div');
+    nameLabel.className = 'board-row-name';
+    nameLabel.innerHTML = `<span class="mark-tag mark-${h.markCls}">${h.mark}</span> ${h.name}`;
+
+    const jockeyLabel = document.createElement('div');
+    jockeyLabel.className = 'board-row-jockey';
+    jockeyLabel.textContent = h.jockey;
+
+    row.appendChild(rankLabel);
+    row.appendChild(lampCell);
+    row.appendChild(nameLabel);
+    row.appendChild(jockeyLabel);
+    boardRows.appendChild(row);
+
+    // 点滅 → 点灯のシーケンス（着順が下がるほど少し遅れて確定）
+    const baseDelay = i * 600;
+    flashThenLight(digits, baseDelay, () => {
+      nameLabel.classList.add('show');
+      jockeyLabel.classList.add('show');
+    });
+  });
+
+  // 全馬結果表は最後の馬の確定後に表示
+  const totalDelay = top5.length * 600 + 1800;
+  setTimeout(showFullResultTable, totalDelay);
+}
+
+function flashThenLight(digitEls, baseDelay, onLit) {
+  const flashCount = 4;
+  const flashInterval = 160;
+  let count = 0;
+
+  function flashStep() {
+    digitEls.forEach(d => d.classList.toggle('flash'));
+    count++;
+    if (count < flashCount * 2) {
+      setTimeout(flashStep, flashInterval);
+    } else {
+      digitEls.forEach(d => { d.classList.remove('flash'); d.classList.add('lit'); });
+      if (onLit) onLit();
+    }
+  }
+  setTimeout(flashStep, baseDelay);
+}
+
+// ============================================================
+//  全馬結果表
+// ============================================================
+function showFullResultTable() {
+  const wrap = document.getElementById('result-table-wrap');
+  wrap.innerHTML = `<div class="section-title">📋 全馬予想結果</div>`;
+  wrap.classList.add('show');
+
+  const table = document.createElement('table');
+  table.className = 'full-result';
+  table.innerHTML = `<thead><tr>
+    <th>順</th><th>印</th><th>馬番</th><th>馬名</th><th>騎手</th><th>総合力</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+
+  state.horses.forEach((h, i) => {
+    const tr = document.createElement('tr');
+    if (i < 3) tr.className = 'row-top3';
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td class="mark-tag mark-${h.markCls}">${h.mark}</td>
+      <td>${h.num}</td>
+      <td class="td-name">${h.name}</td>
+      <td>${h.jockey}</td>
+      <td>${h.total}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('load', () => {
+  renderInputScreen();
+});
+
+</script>
+</body>
+</html>
