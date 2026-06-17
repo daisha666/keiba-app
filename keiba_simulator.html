@@ -202,18 +202,18 @@ textarea.paste-area{
 }
 .board-side{
   flex-shrink:0;
-  width:78px;
+  width:86px;
   display:flex;
   flex-direction:column;
   justify-content:center;
-  gap:4px;
-  padding:4px 5px;
+  gap:5px;
+  padding:5px 6px;
   border-right:2px solid var(--rail);
   background:#06190f;
 }
 .board-side-title{
   text-align:center;
-  font-size:.5rem;
+  font-size:.55rem;
   font-weight:900;
   color:var(--gold);
   letter-spacing:.1em;
@@ -224,29 +224,29 @@ textarea.paste-area{
   display:flex;
   align-items:center;
   gap:4px;
-  padding:2px 3px;
+  padding:3px 4px;
   border-radius:5px;
   background:#0a1f13;
   border:1px solid #143020;
 }
 .board-card-mark{
-  font-size:.62rem;
+  font-size:.7rem;
   font-weight:900;
   color:var(--muted);
-  width:13px;
+  width:14px;
   text-align:center;
   flex-shrink:0;
 }
 .lamp-digit{
   flex:1;
-  height:22px;
+  height:26px;
   background:var(--board-lamp-off);
   border:1px solid #1c4530;
   border-radius:4px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:.78rem;
+  font-size:.88rem;
   font-weight:900;
   font-family:'Courier New',monospace;
   color:transparent;
@@ -269,7 +269,7 @@ textarea.paste-area{
 }
 .lane{
   position:relative;
-  height:19px;
+  height:30px;
   border-bottom:1px dashed rgba(255,255,255,.06);
 }
 .lane:last-child{border-bottom:none;}
@@ -293,35 +293,56 @@ textarea.paste-area{
 }
 .horse-runner{
   position:absolute;
-  top:1px;
+  top:0;
   right:0;
   display:flex;
   align-items:center;
-  gap:2px;
-  font-size:.65rem;
+  gap:3px;
+  font-size:1.1rem;
   white-space:nowrap;
   transition:right linear;
   z-index:3;
 }
 .horse-runner .horse-ico{
   display:inline-block;
+  font-size:1.15rem;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
+}
+.horse-runner.running .horse-ico{
+  animation:gallop-bob .28s ease-in-out infinite;
+}
+@keyframes gallop-bob{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-3px); }
 }
 .horse-runner .num-tag{
-  font-size:.5rem;
+  font-size:.62rem;
   font-weight:900;
-  padding:1px 3px;
-  border-radius:3px;
+  padding:2px 5px;
+  border-radius:4px;
   background:#222;
   color:#fff;
-  border:1px solid rgba(255,255,255,.2);
-  min-width:1.3em;
+  border:1px solid rgba(255,255,255,.25);
+  min-width:1.6em;
   text-align:center;
+  box-shadow:0 1px 2px rgba(0,0,0,.4);
 }
-.runner-mark-honmei .num-tag{background:var(--honmei);color:#fff;}
-.runner-mark-taikou .num-tag{background:var(--taikou);color:#fff;}
-.runner-mark-tan .num-tag{background:var(--tan);color:#04140c;}
-.runner-mark-renpuku .num-tag{background:var(--renpuku);color:#04140c;}
-.runner-mark-hoshi .num-tag{background:var(--hoshi);color:#1a1408;}
+/* JRA枠番カラー（1〜8枠を巡回） */
+.waku-1 .num-tag{background:#fdfdfd;color:#111;border-color:#999;}
+.waku-2 .num-tag{background:#161616;color:#fff;border-color:#fff;}
+.waku-3 .num-tag{background:#d6342c;color:#fff;border-color:rgba(255,255,255,.4);}
+.waku-4 .num-tag{background:#2255c4;color:#fff;border-color:rgba(255,255,255,.4);}
+.waku-5 .num-tag{background:#e8c41a;color:#1a1408;border-color:rgba(0,0,0,.3);}
+.waku-6 .num-tag{background:#1f9c4d;color:#fff;border-color:rgba(255,255,255,.4);}
+.waku-7 .num-tag{background:#e8771a;color:#1a1408;border-color:rgba(0,0,0,.3);}
+.waku-8 .num-tag{background:#e26ab0;color:#1a1408;border-color:rgba(0,0,0,.3);}
+
+/* ゴール確定後：印カラーで上書き表示（外枠を太く光らせる） */
+.runner-mark-honmei .num-tag{box-shadow:0 0 6px var(--honmei),0 1px 2px rgba(0,0,0,.4);border-color:var(--honmei);}
+.runner-mark-taikou .num-tag{box-shadow:0 0 6px var(--taikou),0 1px 2px rgba(0,0,0,.4);border-color:var(--taikou);}
+.runner-mark-tan .num-tag{box-shadow:0 0 6px var(--tan),0 1px 2px rgba(0,0,0,.4);border-color:var(--tan);}
+.runner-mark-renpuku .num-tag{box-shadow:0 0 6px var(--renpuku),0 1px 2px rgba(0,0,0,.4);border-color:var(--renpuku);}
+.runner-mark-hoshi .num-tag{box-shadow:0 0 6px var(--hoshi),0 1px 2px rgba(0,0,0,.4);border-color:var(--hoshi);}
 
 .race-controls{
   padding:10px 16px;
@@ -411,7 +432,7 @@ footer.app-footer{
 <div id="app">
 
   <header>
-    <h1><span class="ico">🐎</span>競馬予想シミュレーター</h1>
+    <h1><span class="ico">🏇</span>競馬予想シミュレーター</h1>
     <div class="sub">RACE RESULT VISUALIZER</div>
   </header>
 
@@ -594,7 +615,40 @@ function scoreHorses(horses, weights) {
     h.markCls = MARKS[i] ? MARKS[i].cls : '';
   });
 
+  assignWakuNumbers(scored);
+
   return scored;
+}
+
+// ============================================================
+//  枠番（JRA方式）の割り当て
+//  8頭ごとに均等配分。8頭以下は1頭ずつ1〜8枠。
+//  9〜16頭は1枠あたり2頭ずつ均等に。17頭以上は外枠（7,8枠）に
+//  3頭入れて調整（厳密なJRA規則の簡易近似）。
+// ============================================================
+function assignWakuNumbers(horses) {
+  const n = horses.length;
+  const byNum = [...horses].sort((a, b) => a.num - b.num);
+
+  // 各枠に何頭入るかを決める（8枠固定、合計n頭になるよう均等配分）
+  const perWaku = Array(8).fill(Math.floor(n / 8));
+  let remainder = n % 8;
+  // 余りは外側の枠（7,8枠）から優先的に1頭ずつ増やす
+  const order = [6,7,5,4,3,2,1,0]; // index: 7枠,8枠,6枠,5枠,4枠,3枠,2枠,1枠
+  let oi = 0;
+  while (remainder > 0) {
+    perWaku[order[oi % order.length]]++;
+    remainder--;
+    oi++;
+  }
+
+  let idx = 0;
+  for (let waku = 0; waku < 8; waku++) {
+    for (let c = 0; c < perWaku[waku]; c++) {
+      if (byNum[idx]) byNum[idx].wakuNum = waku + 1;
+      idx++;
+    }
+  }
 }
 
 // ============================================================
@@ -822,9 +876,9 @@ function renderRaceScreen() {
     const lane = document.createElement('div');
     lane.className = 'lane';
     const runner = document.createElement('div');
-    runner.className = 'horse-runner';
+    runner.className = `horse-runner waku-${h.wakuNum || 1}`;
     runner.id = `runner-${h.num}`;
-    runner.innerHTML = `<span class="horse-ico">🐎</span><span class="num-tag">${h.num}</span>`;
+    runner.innerHTML = `<span class="horse-ico">🏇</span><span class="num-tag">${h.num}</span>`;
     lane.appendChild(runner);
     lanesSide.appendChild(lane);
   });
@@ -896,7 +950,7 @@ function startRaceAnimation() {
   const lanesWidth = lanesSide.clientWidth;
   const goalLinePx = 6; // CSSのgoal-line: left:6px と一致させる
   // ゴールまでの距離（右端=right:0 から、ゴール位置までの right値）
-  const finishRightPx = lanesWidth - goalLinePx - 26;
+  const finishRightPx = lanesWidth - goalLinePx - 38;
 
   // 速度が大きいほど速い（遅くしたいのでベース秒数を増やす）
   const baseDuration = (6 - raceSpeed) * 1.6 + 2.4;
@@ -914,7 +968,16 @@ function startRaceAnimation() {
     const delay = (t * 0.5 + Math.pow(t, 1.4) * 0.5) * maxSpread;
     const duration = baseDuration + delay;
     runner.style.transitionDuration = duration + 's';
-    runner.style.transitionTimingFunction = 'cubic-bezier(.2,.7,.4,1)';
+    // ゴール直前で減速しないよう、ほぼ等速（わずかにスタートだけ滑らかにする）
+    runner.style.transitionTimingFunction = 'cubic-bezier(.25,.1,1,1)';
+    runner.classList.add('running');
+
+    // この馬の移動が完了した瞬間に、上下のギャロップ動作を止める
+    runner.addEventListener('transitionend', function onArrive(e) {
+      if (e.propertyName !== 'right') return;
+      runner.classList.remove('running');
+      runner.removeEventListener('transitionend', onArrive);
+    });
   });
 
   requestAnimationFrame(() => {
