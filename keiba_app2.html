@@ -615,13 +615,13 @@ function analyzeRace(horses) {
 
   if (front >= total * 0.45) {
     pace = 'ハイペース';
-    styleBonus = { '逃げ':-0.10, '先行':-0.05, '差し':+0.08, '追込':+0.12 };
+    styleBonus = { '逃げ':-0.05, '先行':-0.03, '差し':+0.04, '追込':+0.06 };
   } else if (front <= total * 0.20) {
     pace = 'スローペース';
-    styleBonus = { '逃げ':+0.12, '先行':+0.08, '差し':-0.05, '追込':-0.10 };
+    styleBonus = { '逃げ':+0.06, '先行':+0.04, '差し':-0.03, '追込':-0.05 };
   } else {
     pace = '平均ペース';
-    styleBonus = { '逃げ':+0.02, '先行':+0.03, '差し':+0.02, '追込':-0.02 };
+    styleBonus = { '逃げ':+0.01, '先行':+0.01, '差し':+0.01, '追込':-0.01 };
   }
   return { counts, front, pace, styleBonus };
 }
@@ -709,15 +709,19 @@ function scoreHorses(horses, weights) {
       contribs[k] = { value: (v === null ? 0 : v) };
     });
 
-    // 総合力 AC列：8項目の単純合計（null は 0 扱い）
-    const total = Object.values(values).reduce((s, v) => s + (v === null ? 0 : v), 0);
+    // 総合力 AC列：8項目の単純合計 × (1 + 展開ボーナス率)
+    // スプレッドシートの数式と完全に一致させる：
+    // =(U+V+W+X+Y+Z+AA+AB)*(1+IFS(脚質="逃げ",L2,脚質="先行",M2,脚質="差し",N2,脚質="追込",O2,TRUE,0))
+    const baseTotal = Object.values(values).reduce((s, v) => s + (v === null ? 0 : v), 0);
+    const paceBonus = race.styleBonus[h.style] || 0;
+    const total = baseTotal * (1 + paceBonus);
 
-    return { total, contribs };
+    return { total, contribs, paceBonus };
   });
 
   const scored = horses.map((h, i) => {
-    const { total, contribs } = rawScores[i];
-    // スプレッドシートの「総合力」と同じ生の値をそのままスコアとする
+    const { total, contribs, paceBonus } = rawScores[i];
+    // スプレッドシートの「総合力」と同じ生の値をそのままスコアとする（展開ボーナス反映済み）
     const finalScore = Math.round(total * 10) / 10; // 小数1桁
 
     const reasons = Object.entries(contribs)
@@ -726,7 +730,7 @@ function scoreHorses(horses, weights) {
       .filter(([,v]) => v.value > 0)
       .map(([k,v]) => ({ key:k, label: LABELS[k], norm: v.value }));
 
-    return { ...h, score: finalScore, total, contribs, reasons };
+    return { ...h, score: finalScore, total, contribs, reasons, paceBonus };
   });
 
   return { horses: scored, race };
