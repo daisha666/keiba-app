@@ -377,6 +377,7 @@ const STORAGE_KEY = 'keiba_kanzenban_gas_url';
 let gasUrl = '';
 let currentHorses = [];
 let currentRaceInfo = {};
+const raceInfoStore = {}; // raceId → raceInfo
 
 // ============================================================
 // 初期化
@@ -455,8 +456,8 @@ function renderRaceList(races) {
       const round = String(r.round || '');
       const name = String(r.raceName || r.label || '');
       const nameShort = name.length > 6 ? name.substring(0,6)+'…' : name;
-      const rInfo = JSON.stringify({place:r.place||'',surface:r.surface||'',distance:r.distance||'',turn:r.turn||'',baba:r.baba||''}).replace(/'/g,"\'");
-      html += `<button class="race-btn" onclick="loadRace('${r.raceId}', ${rInfo})">
+      raceInfoStore[r.raceId] = {place:r.place||'',surface:r.surface||'',distance:r.distance||'',turn:r.turn||'',baba:r.baba||''};
+      html += `<button class="race-btn" onclick="loadRace('${r.raceId}')">
         <div class="place">${place}</div>
         <div class="round">${round}R</div>
         <div style="font-size:10px;color:var(--text2);margin-top:2px">${nameShort}</div>
@@ -471,8 +472,8 @@ function renderRaceList(races) {
 // ============================================================
 // レース画面
 // ============================================================
-async function loadRace(raceId, raceInfo) {
-  currentRaceInfo = raceInfo || {};
+async function loadRace(raceId) {
+  currentRaceInfo = raceInfoStore[raceId] || {};
   showHome();
   document.getElementById('home').style.display = 'none';
   document.getElementById('race').style.display = 'block';
@@ -482,7 +483,7 @@ async function loadRace(raceId, raceInfo) {
   document.getElementById('ev-cards').innerHTML = '';
   document.getElementById('score-tbody').innerHTML = '';
 
-  document.getElementById('recalc-btn').onclick = () => loadRace(raceId, raceInfo);
+  document.getElementById('recalc-btn').onclick = () => loadRace(raceId);
 
   try {
     const data = await callApi('race', { raceId });
