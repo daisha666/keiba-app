@@ -177,16 +177,16 @@ body {
 .pred-section { padding: 0 16px 12px; }
 .pred-title { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
 .pred-cards {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  -webkit-overflow-scrolling: touch;
+}
+.pred-cards.five-cards {
+  grid-template-columns: repeat(3, 1fr);
 }
 .pred-card {
-  flex: 0 0 100px;
   border-radius: 14px;
-  padding: 12px 8px;
+  padding: 10px 6px;
   text-align: center;
   border: 2px solid transparent;
   cursor: pointer;
@@ -495,7 +495,16 @@ function renderRace(horses, raceId) {
 
   // レース情報バー
   const h0 = horses[0];
-  const info = `<strong>${h0.date || ''}</strong> &nbsp; 出走 ${horses.length}頭`;
+  const days = ['日','月','火','水','木','金','土'];
+  let dateDisp = String(h0.date || '');
+  const dtm = new Date(dateDisp);
+  if (!isNaN(dtm.getTime())) {
+    const y = dtm.getFullYear();
+    const mo = String(dtm.getMonth()+1).padStart(2,'0');
+    const d = String(dtm.getDate()).padStart(2,'0');
+    dateDisp = `${y}/${mo}/${d}（${days[dtm.getDay()]}）`;
+  }
+  const info = `<strong>${dateDisp}</strong> &nbsp; 出走 ${horses.length}頭`;
   document.getElementById('race-info-bar').innerHTML = info;
   document.getElementById('header-sub').textContent = 'RACE ' + raceId.slice(-4);
 
@@ -595,24 +604,62 @@ function renderScoreTable(sorted) {
       <td class="name-col">${h.name}</td>
       <td class="${scoreCls}">${h.totalScore}</td>
       <td class="${evCls}">${evStr}</td>
-      <td style="font-size:10px">${getStyleLabel(h)}</td>
+      <td>${getStyleLabel(h)}</td>
     </tr>`;
   });
   document.getElementById('score-tbody').innerHTML = html;
 }
 
 function renderStyleDist(horses) {
-  const styles = { '逃げ': 0, '先行': 0, '差し': 0, '追込': 0 };
+  const counts = { '逃げ': 0, '先行': 0, '差し': 0, '追込': 0, '不明': 0 };
   horses.forEach(h => {
-    // 脚質は馬データから取得できないため期待値印で代替表示省略
+    const s = h.style || '';
+    if (s.indexOf('逃') !== -1) counts['逃げ']++;
+    else if (s.indexOf('先') !== -1) counts['先行']++;
+    else if (s.indexOf('差') !== -1) counts['差し']++;
+    else if (s.indexOf('追') !== -1) counts['追込']++;
+    else counts['不明']++;
   });
-  // 脚質データがあれば表示（現状は非表示）
-  document.getElementById('style-box').style.display = 'none';
+
+  const hasStyle = (counts['逃げ']+counts['先行']+counts['差し']+counts['追込']) > 0;
+  if (!hasStyle) { document.getElementById('style-box').style.display = 'none'; return; }
+
+  document.getElementById('style-box').style.display = 'block';
+  let distHtml = '';
+  const labels = [
+    { key:'逃げ', color:'var(--red)' },
+    { key:'先行', color:'var(--orange)' },
+    { key:'差し', color:'var(--blue)' },
+    { key:'追込', color:'var(--purple)' }
+  ];
+  labels.forEach(l => {
+    distHtml += `<span class="style-item" style="color:${l.color}">${l.key}:${counts[l.key]}頭</span>`;
+  });
+  document.getElementById('style-dist').innerHTML = distHtml;
+
+  // 展開有利度（逃げ・先行が多いほど先行有利）
+  const total = horses.length;
+  const frontRatio = (counts['逃げ'] + counts['先行']) / total;
+  let advHtml = '展開有利度：';
+  if (counts['逃げ'] >= 3) advHtml += `<span class="style-up">逃げ↑ </span>`;
+  else if (counts['逃げ'] === 0) advHtml += `<span class="style-down">逃げ↓ </span>`;
+  if (frontRatio >= 0.5) advHtml += `<span class="style-up">先行↑ </span><span class="style-down">差し↓ 追込↓</span>`;
+  else advHtml += `<span class="style-up">差し↑ </span>`;
+  document.getElementById('style-adv').innerHTML = advHtml;
 }
 
 function getStyleLabel(h) {
-  // 脚質は指数計算シートに含まれていないため空表示
-  return '';
+  const s = h.style || '';
+  if (!s) return '';
+  const color = s.indexOf('逃') !== -1 ? 'var(--red)' :
+                s.indexOf('先') !== -1 ? 'var(--orange)' :
+                s.indexOf('差') !== -1 ? 'var(--blue)' :
+                s.indexOf('追') !== -1 ? 'var(--purple)' : 'var(--text2)';
+  const label = s.indexOf('逃') !== -1 ? '逃' :
+                s.indexOf('先') !== -1 ? '先' :
+                s.indexOf('差') !== -1 ? '差' :
+                s.indexOf('追') !== -1 ? '追' : '';
+  return label ? `<span style="color:${color};font-size:11px">${label}</span>` : '';
 }
 
 // ============================================================
