@@ -136,13 +136,15 @@ body {
 #race { padding: 0; }
 .race-info {
   background: var(--bg2);
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border);
   font-size: 12px;
   color: var(--text2);
   text-align: center;
+  line-height: 1.8;
 }
-.race-info strong { color: var(--text); font-size: 14px; }
+.race-info .race-name { color: var(--text); font-size: 13px; font-weight: 700; }
+.race-info .race-detail { color: var(--text2); font-size: 11px; }
 
 /* 再計算ボタン */
 .recalc-btn {
@@ -177,16 +179,18 @@ body {
 .pred-section { padding: 0 16px 12px; }
 .pred-title { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
 .pred-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
   gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
-.pred-cards.five-cards {
-  grid-template-columns: repeat(3, 1fr);
-}
+.pred-cards::-webkit-scrollbar { display: none; }
 .pred-card {
+  flex: 0 0 110px;
   border-radius: 14px;
-  padding: 10px 6px;
+  padding: 12px 8px;
   text-align: center;
   border: 2px solid transparent;
   cursor: pointer;
@@ -451,7 +455,8 @@ function renderRaceList(races) {
       const round = String(r.round || '');
       const name = String(r.raceName || r.label || '');
       const nameShort = name.length > 6 ? name.substring(0,6)+'…' : name;
-      html += `<button class="race-btn" onclick="loadRace('${r.raceId}')">
+      const rInfo = JSON.stringify({place:r.place||'',surface:r.surface||'',distance:r.distance||'',turn:r.turn||'',baba:r.baba||''}).replace(/'/g,"\'");
+      html += `<button class="race-btn" onclick="loadRace('${r.raceId}', ${rInfo})">
         <div class="place">${place}</div>
         <div class="round">${round}R</div>
         <div style="font-size:10px;color:var(--text2);margin-top:2px">${nameShort}</div>
@@ -466,7 +471,8 @@ function renderRaceList(races) {
 // ============================================================
 // レース画面
 // ============================================================
-async function loadRace(raceId) {
+async function loadRace(raceId, raceInfo) {
+  currentRaceInfo = raceInfo || {};
   showHome();
   document.getElementById('home').style.display = 'none';
   document.getElementById('race').style.display = 'block';
@@ -476,7 +482,7 @@ async function loadRace(raceId) {
   document.getElementById('ev-cards').innerHTML = '';
   document.getElementById('score-tbody').innerHTML = '';
 
-  document.getElementById('recalc-btn').onclick = () => loadRace(raceId);
+  document.getElementById('recalc-btn').onclick = () => loadRace(raceId, raceInfo);
 
   try {
     const data = await callApi('race', { raceId });
@@ -493,19 +499,26 @@ function renderRace(horses, raceId) {
     return;
   }
 
-  // レース情報バー
+  // レース情報バー（競馬場・芝ダ・距離・回り・出走頭数）
   const h0 = horses[0];
-  const days = ['日','月','火','水','木','金','土'];
-  let dateDisp = String(h0.date || '');
-  const dtm = new Date(dateDisp);
-  if (!isNaN(dtm.getTime())) {
-    const y = dtm.getFullYear();
-    const mo = String(dtm.getMonth()+1).padStart(2,'0');
-    const d = String(dtm.getDate()).padStart(2,'0');
-    dateDisp = `${y}/${mo}/${d}（${days[dtm.getDay()]}）`;
-  }
-  const info = `<strong>${dateDisp}</strong> &nbsp; 出走 ${horses.length}頭`;
-  document.getElementById('race-info-bar').innerHTML = info;
+  const placeCode = raceId.substring(4,6);
+  const PLACE_CODE = {
+    '01':'札幌','02':'函館','03':'福島','04':'新潟','05':'東京',
+    '06':'中山','07':'中京','08':'京都','09':'阪神','10':'小倉'
+  };
+  const placeName = currentRaceInfo.place || PLACE_CODE[placeCode] || '';
+  const surface  = currentRaceInfo.surface || '';
+  const distance = currentRaceInfo.distance || '';
+  const turn     = currentRaceInfo.turn || '';
+  const surfStr  = surface === 'ダート' ? 'ダ' : surface === '芝' ? '芝' : surface;
+  let detailStr = '';
+  if (placeName) detailStr += placeName + ' ';
+  if (surfStr)   detailStr += surfStr;
+  if (distance)  detailStr += distance + 'm ';
+  if (turn)      detailStr += turn + ' ';
+  detailStr += `出走 ${horses.length}頭`;
+  const infoHtml = `<div class="race-detail">${detailStr.trim()}</div>`;
+  document.getElementById('race-info-bar').innerHTML = infoHtml;
   document.getElementById('header-sub').textContent = 'RACE ' + raceId.slice(-4);
 
   // 脚質分布
@@ -536,19 +549,31 @@ function renderRace(horses, raceId) {
 function renderScoreCards(items) {
   const cardClasses = ['card-maru','card-shiro','card-tri','card-delta','card-hoshi'];
   const stampSymbols = { '◎':'◎','○':'○','▲':'▲','△':'△','☆':'☆' };
+  // 最大スコアを取得（バー表示用）
+  const maxScore = items.length > 0 ? Math.max(...items.map(it => parseFloat(it.horse.totalScore)||0)) : 1;
   let html = '';
   items.forEach((item, i) => {
     const h = item.horse;
     const cls = cardClasses[i] || 'card-shiro';
+    const borderColor = cls === 'card-maru' ? 'var(--stamp-maru)' :
+                        cls === 'card-shiro'? 'var(--stamp-shiro)' :
+                        cls === 'card-tri'  ? 'var(--orange)' :
+                        cls === 'card-delta'? 'var(--green)' : 'var(--stamp-hoshi)';
     const doubleCls = h.isDouble ? ' card-double' : '';
     const name = h.name.length > 5 ? h.name.substring(0,5)+'…' : h.name;
-    const evStr = h.ev && h.ev !== '-' ? parseFloat(h.ev).toFixed(2) : '-';
+    const evStr = h.ev && h.ev !== '-' ? 'EV:'+parseFloat(h.ev).toFixed(2) : '';
+    const barPct = Math.round((parseFloat(h.totalScore)||0) / (maxScore||1) * 100);
+    const jockey = h.jockey || '';
     html += `<div class="pred-card ${cls}${doubleCls}">
       <div class="stamp-icon">${stampSymbols[item.stamp]||item.stamp}</div>
       <div class="horse-num">${h.umaban}</div>
       <div class="horse-name">${name}</div>
-      <div class="score-val">${h.totalScore}</div>
-      ${h.ev && h.ev !== '-' ? `<div style="font-size:10px;color:var(--cyan)">EV:${evStr}</div>` : ''}
+      <div class="score-val">総合力 ${h.totalScore}</div>
+      <div style="background:rgba(255,255,255,0.1);border-radius:3px;height:3px;margin:4px 0">
+        <div style="background:${borderColor};width:${barPct}%;height:3px;border-radius:3px"></div>
+      </div>
+      ${evStr ? `<div style="font-size:10px;color:var(--cyan)">${evStr}</div>` : ''}
+      ${jockey ? `<div class="jockey">${jockey}</div>` : ''}
     </div>`;
   });
   document.getElementById('score-cards').innerHTML = html || '<span style="color:var(--text2);font-size:12px">データなし</span>';
@@ -568,12 +593,14 @@ function renderEvCards(items) {
     const name = h.name.length > 5 ? h.name.substring(0,5)+'…' : h.name;
     const evStr = h.ev && h.ev !== '-' ? parseFloat(h.ev).toFixed(2) : '-';
     const oddsStr = h.odds && h.odds !== '-' ? parseFloat(h.odds).toFixed(1)+'倍' : '-';
+    const jockey = h.jockey || '';
     html += `<div class="pred-card ${cls}${doubleCls}">
-      <div class="stamp-icon" style="color:var(--cyan)">${item.stamp}</div>
+      <div class="stamp-icon" style="color:var(--cyan);font-size:14px;font-weight:700">${item.stamp}</div>
       <div class="horse-num">${h.umaban}</div>
       <div class="horse-name">${name}</div>
       <div class="score-val" style="color:var(--cyan)">EV:${evStr}</div>
       <div style="font-size:10px;color:var(--text2)">${oddsStr}</div>
+      ${jockey ? `<div class="jockey">${jockey}</div>` : ''}
     </div>`;
   });
   document.getElementById('ev-cards').innerHTML = html;
