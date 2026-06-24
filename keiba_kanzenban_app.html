@@ -424,7 +424,17 @@ function renderRaceList(races) {
   // 日付でグループ化
   const grouped = {};
   races.forEach(r => {
-    const d = r.date || '';
+    // dateが日付オブジェクト文字列の場合も対応
+    let d = String(r.date || '');
+    // "Sat Jun 20 2026..."形式を"2026/06/20"に変換
+    const dtParse = new Date(d);
+    if (!isNaN(dtParse.getTime())) {
+      const y = dtParse.getFullYear();
+      const m = String(dtParse.getMonth()+1).padStart(2,'0');
+      const day = String(dtParse.getDate()).padStart(2,'0');
+      d = `${y}/${m}/${day}`;
+      r.date = d;
+    }
     if (!grouped[d]) grouped[d] = [];
     grouped[d].push(r);
   });
@@ -432,13 +442,19 @@ function renderRaceList(races) {
   let html = '';
   Object.keys(grouped).sort().forEach(date => {
     html += `<div class="date-group"><div class="date-label">${formatDate(date)}</div><div class="race-grid">`;
-    grouped[date].forEach(r => {
-      const name = r.raceName || '';
-      const nameShort = name.length > 5 ? name.substring(0,5)+'…' : name;
+    grouped[date].sort((a,b) => {
+      const pa = String(a.place||''), pb = String(b.place||'');
+      if (pa !== pb) return pa.localeCompare(pb);
+      return (parseInt(a.round)||0) - (parseInt(b.round)||0);
+    }).forEach(r => {
+      const place = String(r.place || '');
+      const round = String(r.round || '');
+      const name = String(r.raceName || r.label || '');
+      const nameShort = name.length > 6 ? name.substring(0,6)+'…' : name;
       html += `<button class="race-btn" onclick="loadRace('${r.raceId}')">
-        <div class="place">${r.place||''}</div>
-        <div class="round">${r.round||''}R</div>
-        <div style="font-size:10px;color:var(--text2)">${nameShort}</div>
+        <div class="place">${place}</div>
+        <div class="round">${round}R</div>
+        <div style="font-size:10px;color:var(--text2);margin-top:2px">${nameShort}</div>
       </button>`;
     });
     html += '</div></div>';
