@@ -474,7 +474,6 @@ function renderRaceList(races) {
 // ============================================================
 async function loadRace(raceId) {
   currentRaceInfo = raceInfoStore[raceId] || {};
-  showHome();
   document.getElementById('home').style.display = 'none';
   document.getElementById('race').style.display = 'block';
   document.getElementById('btn-home').style.display = 'block';
@@ -482,9 +481,7 @@ async function loadRace(raceId) {
   document.getElementById('score-cards').innerHTML = '';
   document.getElementById('ev-cards').innerHTML = '';
   document.getElementById('score-tbody').innerHTML = '';
-
   document.getElementById('recalc-btn').onclick = () => loadRace(raceId);
-
   try {
     const data = await callApi('race', { raceId });
     currentHorses = data.horses || [];
