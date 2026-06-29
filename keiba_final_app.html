@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>🏇 競馬予想 最終版</title>
+<style>
+:root {
+  --bg:     #0a0a0f;
+  --bg2:    #13131c;
+  --bg3:    #1c1c28;
+  --bg4:    #242433;
+  --border: #2a2a3e;
+  --text:   #e8e8f2;
+  --text2:  #7878a0;
+  --text3:  #5050788;
+  --gold:   #f0c040;
+  --gold2:  #c89820;
+  --red:    #e04040;
+  --red2:   #ff6060;
+  --blue:   #4080e0;
+  --blue2:  #60a0ff;
+  --green:  #30a050;
+  --green2: #50c870;
+  --orange: #e07020;
+  --orange2:#ff9040;
+  --purple: #8050d0;
+  --cyan:   #20a0b0;
+  --cyan2:  #40c0d0;
+  --pink:   #c04080;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 40px;
+  font-size: 14px;
+}
+
+/* ヘッダー */
+.header {
+  background: linear-gradient(135deg, #0d0d18 0%, #1a1a2e 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.header-emoji { font-size: 22px; flex-shrink: 0; }
+.header-text { min-width: 0; }
+.header-title { font-size: 15px; font-weight: 800; color: var(--gold); letter-spacing: 0.03em; }
+.header-sub   { font-size: 10px; color: var(--text2); letter-spacing: 0.12em; margin-top: 1px; }
+.btn-home {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.btn-home:active { opacity: 0.7; }
+
+/* ホーム */
+#home { padding: 14px; }
+.btn-reload {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 13px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 14px;
+  letter-spacing: 0.05em;
+}
+.btn-reload:active { opacity: 0.7; }
+
+/* フィルタバッジ */
+.filter-notice {
+  background: #1a1a10;
+  border: 1px solid #3a3a10;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #a0a040;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+
+/* 日付グループ */
+.date-label {
+  font-size: 11px;
+  color: var(--text2);
+  padding: 4px 0 8px;
+  letter-spacing: 0.06em;
+}
+.race-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-bottom: 18px;
+}
+.race-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 5px;
+  border-radius: 10px;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.5;
+  transition: border-color 0.15s;
+  position: relative;
+}
+.race-btn:active { opacity: 0.7; }
+.race-btn.filtered { opacity: 0.35; border-style: dashed; }
+.race-btn .r-place { color: var(--text2); font-size: 10px; }
+.race-btn .r-round { font-size: 16px; font-weight: 800; color: var(--gold); }
+.race-btn .r-name  { font-size: 10px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.race-btn .r-badge {
+  position: absolute; top: 4px; right: 4px;
+  font-size: 8px; background: var(--green); color: #fff;
+  border-radius: 3px; padding: 1px 4px; font-weight: 700;
+}
+.race-btn .r-badge.warn { background: var(--orange); }
+
+/* セットアップ */
+.setup-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.setup-title { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+.setup-input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.btn-primary {
+  width: 100%;
+  background: var(--gold);
+  color: #000;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.btn-primary:active { opacity: 0.8; }
+.setting-link {
+  display: block; text-align: center; color: var(--text2);
+  font-size: 11px; padding: 8px; cursor: pointer; text-decoration: underline;
+}
+
+/* レース画面 */
+#race { padding: 0; }
+.race-topbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 14px;
+  text-align: center;
+}
+.race-topbar .rt-name   { font-size: 13px; font-weight: 700; color: var(--text); }
+.race-topbar .rt-detail { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* 再計算ボタン */
+.recalc-btn {
+  display: block;
+  width: calc(100% - 28px);
+  margin: 12px 14px;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold2) 100%);
+  color: #000;
+  border: none;
+  padding: 13px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+.recalc-btn:active { opacity: 0.85; }
+
+/* セクションタイトル */
+.sec-title {
+  font-size: 12px;
+  color: var(--text2);
+  padding: 0 14px 6px;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sec-title::before {
+  content: '';
+  display: inline-block;
+  width: 3px; height: 12px;
+  background: var(--gold);
+  border-radius: 2px;
+}
+
+/* 展開予想ボックス */
+.tenkai-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  margin: 0 14px 12px;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.tenkai-row1 {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.tenkai-item { font-size: 12px; }
+.tenkai-pace {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.tenkai-adv {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.t-up   { color: var(--green2); font-weight: 700; }
+.t-down { color: var(--red2);   font-weight: 700; }
+.t-mid  { color: var(--gold);   font-weight: 700; }
+
+/* 予想カード */
+.cards-wrap {
+  padding: 0 14px 12px;
+}
+.pred-cards {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pred-cards::-webkit-scrollbar { display: none; }
+
+.pred-card {
+  flex: 0 0 108px;
+  border-radius: 14px;
+  padding: 12px 8px 10px;
+  text-align: center;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+}
+.pred-card:active { opacity: 0.8; }
+.pc-stamp { font-size: 20px; font-weight: 900; margin-bottom: 3px; line-height: 1; }
+.pc-num   { font-size: 26px; font-weight: 900; line-height: 1.1; }
+.pc-name  { font-size: 10px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 3px 0; }
+.pc-score { font-size: 12px; font-weight: 700; }
+.pc-bar   { background: rgba(255,255,255,0.08); border-radius: 3px; height: 3px; margin: 5px 0 3px; }
+.pc-bar-fill { height: 3px; border-radius: 3px; }
+.pc-ev    { font-size: 10px; color: var(--cyan2); margin-top: 2px; }
+.pc-jockey{ font-size: 10px; opacity: 0.65; margin-top: 1px; }
+.pc-flag  {
+  position: absolute; top: 5px; right: 5px;
+  font-size: 8px; font-weight: 800;
+  padding: 1px 4px; border-radius: 3px;
+}
+
+/* カード色 */
+.card-hon  { background: #2a1010; border-color: #e04040; }
+.card-tai  { background: #101828; border-color: #4080e0; }
+.card-tan  { background: #201808; border-color: #e07020; }
+.card-sub  { background: #101c10; border-color: #30a050; }
+.card-hosi { background: #1c1028; border-color: #8050d0; }
+.card-chu1 { background: #081820; border-color: #20a0b0; }
+.card-chu2 { background: #061618; border-color: #187888; }
+.card-chu3 { background: #041214; border-color: #105060; }
+.card-geki { background: #201008; border-color: #ff8020; box-shadow: 0 0 10px rgba(255,128,32,0.3); }
+.card-double { box-shadow: 0 0 12px rgba(255,64,64,0.5) !important; }
+
+/* 注目・警戒ボックス */
+.notice-row {
+  display: flex;
+  gap: 8px;
+  margin: 0 14px 12px;
+  flex-wrap: wrap;
+}
+.notice-box {
+  flex: 1;
+  min-width: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid;
+}
+.notice-box.geki  { background: #1a1000; border-color: var(--orange); }
+.notice-box.kiken { background: #1a0808; border-color: var(--red); }
+.notice-title { font-size: 11px; font-weight: 700; margin-bottom: 5px; }
+.notice-box.geki  .notice-title { color: var(--orange2); }
+.notice-box.kiken .notice-title { color: var(--red2); }
+.notice-horse {
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+/* 買い目ボックス */
+.kaime-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  margin: 0 14px 14px;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.kaime-title { font-size: 12px; color: var(--gold); font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.kaime-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.kaime-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.kaime-type {
+  background: var(--bg3);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.kaime-type.tan  { color: var(--gold); }
+.kaime-type.wide { color: var(--cyan2); }
+.kaime-type.ren  { color: var(--orange2); }
+.kaime-detail { font-size: 12px; line-height: 1.8; color: var(--text); }
+.kaime-reason { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.kaime-none {
+  font-size: 12px; color: var(--text2);
+  padding: 8px 0; text-align: center;
+}
+
+/* 全馬テーブル */
+.table-wrap {
+  padding: 0 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.score-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 320px;
+}
+.score-table th {
+  font-size: 10px;
+  color: var(--text2);
+  padding: 6px 4px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  background: var(--bg);
+  position: sticky;
+  top: 46px;
+}
+.score-table td {
+  padding: 9px 4px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.3;
+}
+.score-table tr:last-child td { border-bottom: none; }
+.score-table .name-col { text-align: left; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-table .jockey-col { text-align: left; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--text2); }
+.col-score  { color: var(--gold); font-weight: 700; }
+.col-ev-hi  { color: var(--cyan2); font-weight: 700; }
+.col-ev-mid { color: var(--cyan); }
+.col-rank1  { color: var(--gold); font-weight: 800; }
+
+/* 脚質バッジ */
+.sty { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; }
+.sty-nige  { background: #300808; color: var(--red2); }
+.sty-senko { background: #301408; color: var(--orange2); }
+.sty-sashi { background: #081030; color: var(--blue2); }
+.sty-oikomi{ background: #180830; color: #a080ff; }
+
+/* 印 */
+.stamp { display: inline-block; font-size: 14px; font-weight: 900; width: 22px; text-align: center; }
+.s-hon  { color: #e04040; }
+.s-tai  { color: #4080e0; }
+.s-tan  { color: #e07020; }
+.s-sub  { color: #30a050; }
+.s-hos  { color: #8050d0; }
+.s-chu  { color: var(--cyan2); }
+.s-dbl  { background: rgba(255,64,64,0.15); border-radius: 3px; }
+
+/* ローディング・エラー */
+.loading { text-align: center; padding: 50px 16px; color: var(--text2); font-size: 13px; }
+.spinner {
+  width: 30px; height: 30px;
+  border: 3px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.error-box {
+  background: #200808;
+  border: 1px solid var(--red);
+  border-radius: 10px;
+  padding: 13px;
+  margin: 14px;
+  font-size: 12px;
+  color: var(--red2);
+  line-height: 1.6;
+}
+
+.divider { height: 1px; background: var(--border); margin: 12px 14px; }
+</style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-emoji">🏇</div>
+    <div class="header-text">
+      <div class="header-title">競馬予想 最終版</div>
+      <div class="header-sub" id="header-sub">FINAL ANALYZER</div>
+    </div>
+  </div>
+  <button class="btn-home" id="btn-home" onclick="showHome()" style="display:none">🏠 ホーム</button>
+</div>
+
+<!-- ホーム画面 -->
+<div id="home">
+  <div id="setup-area" style="display:none">
+    <div class="setup-box">
+      <div class="setup-title">⚙ GAS URL設定（最終版）</div>
+      <input type="url" class="setup-input" id="gas-url-input" placeholder="https://script.google.com/macros/s/.../exec">
+      <button class="btn-primary" onclick="saveUrl()">保存して読み込む</button>
+    </div>
+  </div>
+  <button class="btn-reload" onclick="loadRaceList()">🔄 レース一覧を更新</button>
+  <div class="filter-notice">
+    ⚡ 自動フィルタ適用中：新馬・未勝利・障害・8頭以下は除外
+  </div>
+  <div id="race-list">
+    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+  </div>
+  <span class="setting-link" onclick="showSetup()">⚙ GAS URL設定を変更</span>
+</div>
+
+<!-- レース画面 -->
+<div id="race" style="display:none">
+
+  <!-- レース情報バー -->
+  <div class="race-topbar">
+    <div class="rt-name" id="rt-name">－</div>
+    <div class="rt-detail" id="rt-detail">－</div>
+  </div>
+
+  <!-- 再計算 -->
+  <button class="recalc-btn" id="recalc-btn">🔄 再計算</button>
+
+  <!-- 展開予想 -->
+  <div class="sec-title">📊 展開予想</div>
+  <div class="tenkai-box" id="tenkai-box">
+    <div class="loading" style="padding:10px"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div></div>
+  </div>
+
+  <!-- スコア上位5頭 -->
+  <div class="sec-title">🏆 予想（スコア上位5頭）</div>
+  <div class="cards-wrap">
+    <div class="pred-cards" id="score-cards"></div>
+  </div>
+
+  <!-- EV上位3頭 -->
+  <div class="sec-title" id="ev-sec-title" style="display:none">💰 期待値上位3頭</div>
+  <div class="cards-wrap" id="ev-section" style="display:none">
+    <div class="pred-cards" id="ev-cards"></div>
+  </div>
+
+  <!-- 激走馬・危険馬 -->
+  <div id="notice-area"></div>
+
+  <div class="divider"></div>
+
+  <!-- 買い目 -->
+  <div class="sec-title">🎯 買い目推奨</div>
+  <div class="kaime-box" id="kaime-box">
+    <div class="kaime-none">計算中...</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- 全馬一覧 -->
+  <div class="sec-title">📋 全馬スコア一覧</div>
+  <div class="table-wrap">
+    <table class="score-table">
+      <thead>
+        <tr>
+          <th>順</th><th>印</th><th>馬番</th>
+          <th class="name-col">馬名</th>
+          <th class="jockey-col">騎手</th>
+          <th>総合</th><th>EV</th><th>脚質</th>
+        </tr>
+      </thead>
+      <tbody id="score-tbody"></tbody>
+    </table>
+  </div>
+
+</div><!-- /#race -->
+
+<script>
+// ============================================================
+// 定数・設定
+// ============================================================
+const STORAGE_KEY = 'keiba_final_gas_url';
+const EV_BUY_TH  = 1.20; // EV買い推奨閾値
+const EV_STRONG  = 1.50; // 単勝推奨閾値
+
+// 自動除外クラス
+const FILTER_CLASSES = ['新馬','未勝利','障害'];
+const FILTER_MIN_HEADS = 8;
+
+let gasUrl = '';
+let currentHorses = [];
+let currentRaceInfo = {};
+let currentRaceId = '';
+const raceStore = {}; // raceId → raceInfo
+
+// ============================================================
+// 初期化
+// ============================================================
+window.onload = function() {
+  gasUrl = localStorage.getItem(STORAGE_KEY) || '';
+  if (!gasUrl) showSetup();
+  else loadRaceList();
+};
+
+function showSetup() {
+  document.getElementById('setup-area').style.display = 'block';
+  document.getElementById('gas-url-input').value = gasUrl;
+}
+function saveUrl() {
+  const url = (document.getElementById('gas-url-input').value || '').trim();
+  if (!url) return;
+  gasUrl = url;
+  localStorage.setItem(STORAGE_KEY, url);
+  document.getElementById('setup-area').style.display = 'none';
+  loadRaceList();
+}
+
+// ============================================================
+// ホーム：レース一覧
+// ============================================================
+async function loadRaceList() {
+  document.getElementById('race-list').innerHTML =
+    '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  try {
+    const data = await callApi('list');
+    renderRaceList(data.races || []);
+  } catch(e) {
+    document.getElementById('race-list').innerHTML =
+      '<div class="error-box">❌ 取得失敗: ' + e.message +
+      '<br>GAS URLを確認し、最終版で⑥計算を実行してください。</div>';
+  }
+}
+
+function renderRaceList(races) {
+  if (!races || races.length === 0) {
+    document.getElementById('race-list').innerHTML =
+      '<div class="error-box">レースデータがありません。<br>最終版スプレッドシートで「🚀指数計算」を実行してください。</div>';
+    return;
+  }
+
+  // 日付グループ化
+  const grouped = {};
+  races.forEach(r => {
+    let d = normalizeDate(r.date);
+    r.date = d;
+    if (!grouped[d]) grouped[d] = [];
+    grouped[d].push(r);
+    raceStore[r.raceId] = r;
+  });
+
+  const days = ['日','月','火','水','木','金','土'];
+  let html = '';
+  Object.keys(grouped).sort().forEach(date => {
+    const dt = new Date(date);
+    const dayLabel = isNaN(dt.getTime()) ? date :
+      `${date}（${days[dt.getDay()]}）`;
+    html += `<div class="date-label">${dayLabel}</div><div class="race-grid">`;
+
+    grouped[date].sort((a,b) => {
+      const JRA = ['札幌','函館','福島','新潟','東京','中山','中京','京都','阪神','小倉'];
+      const pi = JRA.indexOf(a.place||''), pj = JRA.indexOf(b.place||'');
+      if (pi !== pj) return pi - pj;
+      return (parseInt(a.round)||0) - (parseInt(b.round)||0);
+    }).forEach(r => {
+      const cls     = String(r.raceClass || r.raceName || '');
+      const heads   = parseInt(r.heads) || 0;
+      const filtered = FILTER_CLASSES.some(fc => cls.indexOf(fc) !== -1) ||
+                       (heads > 0 && heads <= FILTER_MIN_HEADS);
+
+      const nameRaw = String(r.raceName || r.label || r.round + 'R');
+      const nameShort = nameRaw.length > 7 ? nameRaw.substring(0,7)+'…' : nameRaw;
+
+      // 激走・EV注目バッジ（raceStore内のフラグから）
+      const badge = r.hasGekiso ? '<span class="r-badge">激走</span>' :
+                    r.hasEvBuy  ? '<span class="r-badge warn">EV↑</span>' : '';
+
+      html += `<button class="race-btn${filtered?' filtered':''}"
+        onclick="${filtered?'':'loadRace(\''+r.raceId+'\')'}">
+        <div class="r-place">${r.place||''}</div>
+        <div class="r-round">${r.round}R</div>
+        <div class="r-name">${nameShort}</div>
+        ${badge}
+      </button>`;
+    });
+    html += '</div>';
+  });
+
+  document.getElementById('race-list').innerHTML = html;
+}
+
+// ============================================================
+// レース画面
+// ============================================================
+async function loadRace(raceId) {
+  currentRaceId   = raceId;
+  currentRaceInfo = raceStore[raceId] || {};
+
+  document.getElementById('home').style.display  = 'none';
+  document.getElementById('race').style.display  = 'block';
+  document.getElementById('btn-home').style.display = 'block';
+  document.getElementById('header-sub').textContent = 'RACE ' + raceId.slice(-4);
+
+  // レース情報バー
+  const ri = currentRaceInfo;
+  document.getElementById('rt-name').textContent =
+    (ri.place||'') + ' ' + (ri.round||'') + 'R　' + (ri.raceName || ri.label || '');
+  document.getElementById('rt-detail').textContent =
+    [(ri.surface||''), (ri.distance ? ri.distance+'m' : ''), (ri.turn||''), (ri.baba ? '馬場:'+ri.baba : '')]
+    .filter(Boolean).join('　');
+
+  // 再計算ボタン
+  document.getElementById('recalc-btn').onclick = () => loadRace(raceId);
+
+  // 初期化
+  document.getElementById('tenkai-box').innerHTML =
+    '<div class="loading" style="padding:10px"><div class="spinner" style="width:20px;height:20px;border-width:2px"></div></div>';
+  document.getElementById('score-cards').innerHTML = '';
+  document.getElementById('ev-cards').innerHTML    = '';
+  document.getElementById('score-tbody').innerHTML = '';
+  document.getElementById('notice-area').innerHTML = '';
+  document.getElementById('kaime-box').innerHTML   = '<div class="kaime-none">計算中...</div>';
+  document.getElementById('ev-section').style.display    = 'none';
+  document.getElementById('ev-sec-title').style.display  = 'none';
+
+  try {
+    const data = await callApi('race', { raceId });
+    currentHorses = data.horses || [];
+    renderRaceFull(currentHorses, raceId);
+  } catch(e) {
+    document.getElementById('tenkai-box').innerHTML =
+      '<div class="error-box">❌ ' + e.message + '</div>';
+  }
+}
+
+// ============================================================
+// レース全体レンダリング
+// ============================================================
+function renderRaceFull(horses, raceId) {
+  if (!horses || horses.length === 0) {
+    document.getElementById('tenkai-box').innerHTML =
+      '<div class="error-box">データなし。指数計算を再実行してください。</div>';
+    return;
+  }
+
+  // ① 展開予想
+  renderTenkai(horses);
+
+  // ② スコア上位5頭
+  const scoreSorted = [...horses].sort((a,b) => b.totalScore - a.totalScore);
+  const top5 = scoreSorted.slice(0, 5);
+  renderScoreCards(top5, scoreSorted);
+
+  // ③ EV上位3頭
+  const evHorses = horses
+    .filter(h => h.ev && h.ev !== '-' && parseFloat(h.ev) > 0)
+    .sort((a,b) => parseFloat(b.ev) - parseFloat(a.ev))
+    .slice(0, 3);
+  renderEvCards(evHorses);
+
+  // ④ 激走馬・危険馬
+  renderNotices(horses);
+
+  // ⑤ 買い目
+  renderKaime(horses, scoreSorted, evHorses);
+
+  // ⑥ 全馬テーブル
+  renderTable(scoreSorted);
+}
+
+// ============================================================
+// ① 展開予想
+// ============================================================
+function renderTenkai(horses) {
+  const cnt = { nige:0, senko:0, sashi:0, oikomi:0, fume:0 };
+  horses.forEach(h => {
+    const s = h.style || '';
+    if      (s.indexOf('逃')!==-1) cnt.nige++;
+    else if (s.indexOf('先')!==-1) cnt.senko++;
+    else if (s.indexOf('差')!==-1) cnt.sashi++;
+    else if (s.indexOf('追')!==-1) cnt.oikomi++;
+    else                           cnt.fume++;
+  });
+
+  const total = horses.length;
+  const frontRatio = (cnt.nige + cnt.senko) / total;
+
+  // ペース判定
+  let pace, paceColor;
+  if (cnt.nige >= 3) { pace = 'ハイペース'; paceColor = 'var(--red2)'; }
+  else if (cnt.nige === 0 && cnt.senko <= 2) { pace = 'スローペース'; paceColor = 'var(--green2)'; }
+  else { pace = 'ミドルペース'; paceColor = 'var(--gold)'; }
+
+  // 有利脚質
+  const advList = [];
+  if (pace === 'ハイペース') {
+    advList.push('<span class="t-up">差し↑</span>');
+    advList.push('<span class="t-up">追込↑</span>');
+    advList.push('<span class="t-down">逃げ↓</span>');
+  } else if (pace === 'スローペース') {
+    advList.push('<span class="t-up">逃げ↑</span>');
+    advList.push('<span class="t-up">先行↑</span>');
+    advList.push('<span class="t-down">追込↓</span>');
+  } else {
+    if (frontRatio >= 0.5) {
+      advList.push('<span class="t-up">先行↑</span>');
+      advList.push('<span class="t-mid">差し→</span>');
+    } else {
+      advList.push('<span class="t-mid">先行→</span>');
+      advList.push('<span class="t-up">差し↑</span>');
+    }
+  }
+
+  // 逃げ馬名
+  const nigeHorses = horses.filter(h => (h.style||'').indexOf('逃')!==-1);
+  const nigeNames  = nigeHorses.map(h => h.umaban + '番' + (h.name||'').substring(0,4)).join('・');
+
+  // 展開シナリオ文
+  let scenario = '';
+  if (nigeHorses.length === 0) {
+    scenario = '逃げ馬不在。スタートでポジション争いが起き、スローからの末脚勝負になりやすい。';
+  } else if (cnt.nige >= 3) {
+    scenario = `逃げ馬が${cnt.nige}頭と多く、序盤から激しいペース争いが予想される。差し・追込に展開利。`;
+  } else if (cnt.nige === 1) {
+    scenario = `逃げ馬は${nigeNames}のみ。単騎逃げでペースを握りやすく、先行有利の展開になる可能性が高い。`;
+  } else {
+    scenario = `逃げ馬は${nigeNames}の${cnt.nige}頭。ペース次第で展開が大きく変わる。`;
+  }
+
+  const distRow = [
+    `<span class="tenkai-item" style="color:var(--red2)">逃げ:${cnt.nige}頭</span>`,
+    `<span class="tenkai-item" style="color:var(--orange2)">先行:${cnt.senko}頭</span>`,
+    `<span class="tenkai-item" style="color:var(--blue2)">差し:${cnt.sashi}頭</span>`,
+    `<span class="tenkai-item" style="color:#a080ff">追込:${cnt.oikomi}頭</span>`,
+  ].join('');
+
+  document.getElementById('tenkai-box').innerHTML = `
+    <div class="tenkai-row1">${distRow}</div>
+    <div class="tenkai-pace">予想ペース：<span style="color:${paceColor};font-weight:700">${pace}</span></div>
+    <div class="tenkai-adv" style="margin-bottom:8px">展開有利：${advList.join('　')}</div>
+    <div style="font-size:11px;color:var(--text2);line-height:1.7">${scenario}</div>
+  `;
+}
+
+// ============================================================
+// ② スコアカード
+// ============================================================
+function renderScoreCards(top5, scoreSorted) {
+  const maxScore = scoreSorted.length > 0 ? Math.max(...scoreSorted.map(h => parseFloat(h.totalScore)||0)) : 1;
+  const labels  = ['◎','○','▲','△','☆'];
+  const cardCls = ['card-hon','card-tai','card-tan','card-sub','card-hosi'];
+  const barColors= ['#e04040','#4080e0','#e07020','#30a050','#8050d0'];
+
+  let html = '';
+  top5.forEach((h, i) => {
+    const label    = labels[i];
+    const cls      = cardCls[i];
+    const barColor = barColors[i];
+    const barPct   = Math.round((parseFloat(h.totalScore)||0) / maxScore * 100);
+    const name     = (h.name||'').length > 5 ? h.name.substring(0,5)+'…' : (h.name||'');
+    const evStr    = validEv(h.ev) ? 'EV:' + parseFloat(h.ev).toFixed(2) : '';
+    const doubleCls= h.isDouble ? ' card-double' : '';
+
+    // 激走フラグ
+    const gFlag = h.gekisoFlag && h.gekisoFlag !== '' ?
+      `<div class="pc-flag" style="background:var(--orange);color:#000">激走</div>` : '';
+    const kFlag = h.kajinFlag && h.kajinFlag !== '' ?
+      `<div class="pc-flag" style="background:var(--red);color:#fff">⚠警戒</div>` : '';
+
+    html += `<div class="pred-card ${cls}${doubleCls}">
+      ${gFlag}${kFlag}
+      <div class="pc-stamp" style="color:${barColor}">${label}</div>
+      <div class="pc-num">${h.umaban}</div>
+      <div class="pc-name">${name}</div>
+      <div class="pc-score">総合力 ${h.totalScore}</div>
+      <div class="pc-bar"><div class="pc-bar-fill" style="background:${barColor};width:${barPct}%"></div></div>
+      ${evStr ? `<div class="pc-ev">${evStr}</div>` : ''}
+      ${h.jockey ? `<div class="pc-jockey">${(h.jockey||'').substring(0,4)}</div>` : ''}
+    </div>`;
+  });
+
+  document.getElementById('score-cards').innerHTML = html ||
+    '<span style="color:var(--text2);font-size:12px">データなし</span>';
+}
+
+// ============================================================
+// ③ EVカード
+// ============================================================
+function renderEvCards(evTop3) {
+  const evSec   = document.getElementById('ev-section');
+  const evTitle = document.getElementById('ev-sec-title');
+  if (!evTop3 || evTop3.length === 0) {
+    evSec.style.display  = 'none';
+    evTitle.style.display= 'none';
+    return;
+  }
+  evSec.style.display  = 'block';
+  evTitle.style.display= 'flex';
+
+  const cardCls = ['card-chu1','card-chu2','card-chu3'];
+  let html = '';
+  evTop3.forEach((h, i) => {
+    const label   = '注' + (i+1);
+    const cls     = cardCls[i];
+    const doubleCls = h.isDouble ? ' card-double' : '';
+    const name    = (h.name||'').length > 5 ? h.name.substring(0,5)+'…' : (h.name||'');
+    const evNum   = parseFloat(h.ev);
+    const oddsStr = validEv(h.odds) ? parseFloat(h.odds).toFixed(1)+'倍' : '-';
+
+    html += `<div class="pred-card ${cls}${doubleCls}">
+      <div class="pc-stamp" style="color:var(--cyan2);font-size:14px;font-weight:900">${label}</div>
+      <div class="pc-num">${h.umaban}</div>
+      <div class="pc-name">${name}</div>
+      <div class="pc-score" style="color:var(--cyan2)">EV:${evNum.toFixed(2)}</div>
+      <div style="font-size:10px;color:var(--text2)">${oddsStr}</div>
+      ${h.jockey ? `<div class="pc-jockey">${(h.jockey||'').substring(0,4)}</div>` : ''}
+    </div>`;
+  });
+  document.getElementById('ev-cards').innerHTML = html;
+}
+
+// ============================================================
+// ④ 激走馬・危険馬
+// ============================================================
+function renderNotices(horses) {
+  const geki  = horses.filter(h => h.gekisoFlag && h.gekisoFlag !== '');
+  const kiken = horses.filter(h => h.kajinFlag  && h.kajinFlag  !== '');
+
+  if (geki.length === 0 && kiken.length === 0) {
+    document.getElementById('notice-area').innerHTML = '';
+    return;
+  }
+
+  let html = '<div class="notice-row">';
+
+  if (geki.length > 0) {
+    const list = geki.map(h =>
+      `<div class="notice-horse">⚡ <b>${h.umaban}番</b> ${(h.name||'').substring(0,6)} <span style="color:var(--orange2)">激走スコア:${h.gekisoScore}</span></div>`
+    ).join('');
+    html += `<div class="notice-box geki">
+      <div class="notice-title">⚡ 激走候補</div>
+      ${list}
+    </div>`;
+  }
+
+  if (kiken.length > 0) {
+    const list = kiken.map(h =>
+      `<div class="notice-horse">⚠ <b>${h.umaban}番</b> ${(h.name||'').substring(0,6)} <span style="color:var(--red2)">過剰人気</span></div>`
+    ).join('');
+    html += `<div class="notice-box kiken">
+      <div class="notice-title">⚠ 危険馬（過剰人気）</div>
+      ${list}
+    </div>`;
+  }
+
+  html += '</div>';
+  document.getElementById('notice-area').innerHTML = html;
+}
+
+// ============================================================
+// ⑤ 買い目推奨
+// ============================================================
+function renderKaime(horses, scoreSorted, evTop3) {
+  const top5 = scoreSorted.slice(0, 5);
+  const hon  = top5[0]; // ◎
+  const tai  = top5[1]; // ○
+  const tan  = top5[2]; // ▲
+
+  const buys = [];
+
+  // --- 単勝 ---
+  // EV1.5以上かつスコア上位3頭以内 → 単勝推奨
+  const tanshoCands = top5.filter(h => validEv(h.ev) && parseFloat(h.ev) >= EV_STRONG);
+  if (tanshoCands.length > 0) {
+    const best = tanshoCands[0];
+    buys.push({
+      type: 'tan',
+      label: '単勝',
+      detail: `${best.umaban}番 ${(best.name||'').substring(0,6)}`,
+      reason: `EV${parseFloat(best.ev).toFixed(2)}（閾値${EV_STRONG}以上）× スコア上位`
+    });
+  }
+
+  // --- ワイド ---
+  // 方針: スコア◎○▲の3頭BOX（3点）または ◎-○▲△☆のながし
+  // EV上位馬が含まれる場合は優先的にその馬を絡める
+  const evBuyHorses = horses.filter(h => validEv(h.ev) && parseFloat(h.ev) >= EV_BUY_TH)
+    .sort((a,b) => parseFloat(b.ev)-parseFloat(a.ev));
+
+  if (top5.length >= 3) {
+    let wideDetail = '';
+    let wideReason = '';
+
+    if (evBuyHorses.length >= 1 && evBuyHorses[0].umaban !== hon.umaban) {
+      // EV高い馬がスコア本命と別なら：本命-EV馬 ながし
+      const evHorse = evBuyHorses[0];
+      const partners = top5.filter(h => h.umaban !== evHorse.umaban).slice(0, 3);
+      wideDetail = `${evHorse.umaban}番 → ${partners.map(h=>h.umaban+'番').join(' ')}`;
+      wideReason = `EV高馬(${evHorse.umaban}番 EV${parseFloat(evHorse.ev).toFixed(2)})軸ながし`;
+    } else {
+      // 通常: スコア上位3頭BOX
+      const box3 = top5.slice(0, 3);
+      wideDetail = `${box3.map(h=>h.umaban+'番').join(' - ')} ３頭BOX（3点）`;
+      wideReason = 'スコア◎○▲3頭ボックス';
+    }
+
+    buys.push({
+      type: 'wide',
+      label: 'ワイド',
+      detail: wideDetail,
+      reason: wideReason
+    });
+  }
+
+  // --- 馬連 ---
+  // 方針: スコア上位2頭がEV1.2以上の場合のみ推奨、それ以外は上位3頭BOX
+  if (top5.length >= 2) {
+    const honEv  = validEv(hon.ev) ? parseFloat(hon.ev) : 0;
+    const taiEv  = validEv(tai.ev) ? parseFloat(tai.ev) : 0;
+
+    let renDetail = '';
+    let renReason = '';
+
+    if (honEv >= EV_BUY_TH && taiEv >= EV_BUY_TH) {
+      renDetail = `${hon.umaban}番 - ${tai.umaban}番 （1点）`;
+      renReason = `◎EV${honEv.toFixed(2)} × ○EV${taiEv.toFixed(2)} 両者EV高`;
+    } else if (top5.length >= 3) {
+      const box3 = top5.slice(0, 3);
+      renDetail = `${box3.map(h=>h.umaban+'番').join(' - ')} ３頭BOX（3点）`;
+      renReason = 'スコア上位3頭ボックス（EV条件未達のため拡張）';
+    }
+
+    if (renDetail) {
+      buys.push({
+        type: 'ren',
+        label: '馬連',
+        detail: renDetail,
+        reason: renReason
+      });
+    }
+  }
+
+  // 買い目なし
+  if (buys.length === 0) {
+    document.getElementById('kaime-box').innerHTML =
+      '<div class="kaime-none">今週は推奨買い目なし<br><span style="font-size:10px;color:var(--text2)">EV・スコアが条件を満たしていません</span></div>';
+    return;
+  }
+
+  let html = '';
+  buys.forEach(b => {
+    html += `<div class="kaime-item">
+      <div class="kaime-type ${b.type}">${b.label}</div>
+      <div>
+        <div class="kaime-detail">${b.detail}</div>
+        <div class="kaime-reason">${b.reason}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('kaime-box').innerHTML = html;
+}
+
+// ============================================================
+// ⑥ 全馬テーブル
+// ============================================================
+function renderTable(sorted) {
+  const stampMap = {
+    '◎':'s-hon','○':'s-tai','▲':'s-tan','△':'s-sub','☆':'s-hos',
+    '注1':'s-chu','注2':'s-chu','注3':'s-chu',
+    '注4':'s-chu','注5':'s-chu'
+  };
+  let html = '';
+  sorted.forEach((h, i) => {
+    const ss  = h.scoreStamp || '';
+    const es  = h.evStamp    || '';
+    const dbl = h.isDouble;
+    const displayStamp = ss || es;
+    const sCls = (stampMap[ss] || (es ? 's-chu' : '')) + (dbl ? ' s-dbl' : '');
+    const evNum  = validEv(h.ev) ? parseFloat(h.ev) : null;
+    const evStr  = evNum !== null ? evNum.toFixed(2) : '-';
+    const evCls  = evNum !== null && evNum >= EV_STRONG ? 'col-ev-hi' :
+                   evNum !== null && evNum >= EV_BUY_TH  ? 'col-ev-mid' : '';
+    const scoreCls = i === 0 ? 'col-rank1' : (i < 3 ? 'col-score' : '');
+    const styleBadge = getStyleBadge(h.style || '');
+
+    // 激走・危険マーク
+    let extraMark = '';
+    if (h.gekisoFlag && h.gekisoFlag !== '') extraMark += ' ⚡';
+    if (h.kajinFlag  && h.kajinFlag  !== '') extraMark += ' ⚠';
+
+    html += `<tr>
+      <td>${i+1}</td>
+      <td><span class="stamp ${sCls}">${displayStamp}</span></td>
+      <td>${h.umaban}</td>
+      <td class="name-col">${(h.name||'')}${extraMark}</td>
+      <td class="jockey-col">${(h.jockey||'').substring(0,4)}</td>
+      <td class="${scoreCls}">${h.totalScore}</td>
+      <td class="${evCls}">${evStr}</td>
+      <td>${styleBadge}</td>
+    </tr>`;
+  });
+  document.getElementById('score-tbody').innerHTML = html;
+}
+
+function getStyleBadge(s) {
+  if (!s) return '';
+  if (s.indexOf('逃')!==-1) return '<span class="sty sty-nige">逃</span>';
+  if (s.indexOf('先')!==-1) return '<span class="sty sty-senko">先</span>';
+  if (s.indexOf('差')!==-1) return '<span class="sty sty-sashi">差</span>';
+  if (s.indexOf('追')!==-1) return '<span class="sty sty-oikomi">追</span>';
+  return '';
+}
+
+// ============================================================
+// 画面切り替え
+// ============================================================
+function showHome() {
+  document.getElementById('home').style.display = 'block';
+  document.getElementById('race').style.display = 'none';
+  document.getElementById('btn-home').style.display = 'none';
+  document.getElementById('header-sub').textContent = 'FINAL ANALYZER';
+}
+
+// ============================================================
+// API
+// ============================================================
+function callApi(action, params = {}) {
+  if (!gasUrl) throw new Error('GAS URLが設定されていません');
+  const url = new URL(gasUrl);
+  url.searchParams.set('action', action);
+  Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  return fetch(url.toString())
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+}
+
+// ============================================================
+// ユーティリティ
+// ============================================================
+function normalizeDate(d) {
+  if (!d) return '';
+  const dt = new Date(String(d));
+  if (!isNaN(dt.getTime())) {
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth()+1).padStart(2,'0');
+    const day= String(dt.getDate()).padStart(2,'0');
+    return `${y}/${m}/${day}`;
+  }
+  return String(d);
+}
+
+function validEv(v) {
+  if (v === null || v === undefined || v === '-' || v === '') return false;
+  const n = parseFloat(v);
+  return !isNaN(n) && n > 0;
+}
+</script>
+</body>
+</html>
